@@ -3,6 +3,7 @@
     {
       "source": "/api/gas",
       "destination": "https://script.google.com/macros/s/AKfycbxNV8LFmajJWVbbSbt_xN9aV1P663YaEHMc6EV5xm0PQFf_9Lgtzme0lLqxPG0Z2TY0Dg/exec"
+      
     }
   ]
 }
