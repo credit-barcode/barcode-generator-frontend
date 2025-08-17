@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/gas",
-      "destination": "https://script.google.com/macros/s/AKfycbxNV8LFmajJWVbbSbt_xN9aV1P663YaEHMc6EV5xm0PQFf_9Lgtzme0lLqxPG0Z2TY0Dg/exec"
+      "destination": "https://script.google.com/macros/s/AKfycby08Qvxpb-rgtNhbgF7FliPfsXdArwM_cfcwTSzmbq4Tr1sM_q35YqljZTG_gE8ZL18_A/exec"
     },
     {
       "source": "/api/getBankNames",
-      "destination": "https://script.google.com/macros/s/AKfycbxNV8LFmajJWVbbSbt_xN9aV1P663YaEHMc6EV5xm0PQFf_9Lgtzme0lLqxPG0Z2TY0Dg/exec"
+      "destination": "https://script.google.com/macros/s/AKfycby08Qvxpb-rgtNhbgF7FliPfsXdArwM_cfcwTSzmbq4Tr1sM_q35YqljZTG_gE8ZL18_A/exec"
     }
   ]
 }
