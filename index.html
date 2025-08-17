@@ -286,16 +286,13 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ functionName, parameters }),
-        mode: 'cors'
       })
-      .then(response => {
-        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-        return response.json();
-      })
-      .catch(error => {
-        console.error(`Error calling ${functionName}:`, error);
-        throw error;
-      });
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        });
     }
     
     // ▼ UI 顯示/隱藏控制函式 ▼
