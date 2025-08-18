@@ -640,25 +640,44 @@
         clearPreviews();
     }
         
-    function loadBankSelect() { 
-        callBackend('getBankNames')
-            .then(data => {
-                const banks = data || [];
-                const select = document.getElementById('bankSelect');
-                const otherOption = select.querySelector('option[value="other"]'); 
-                while (select.options.length > 2) { select.remove(1); }
-                banks.forEach(name => { 
-                    const opt = document.createElement('option'); 
-                    opt.value = name; 
-                    opt.textContent = name; 
-                    select.insertBefore(opt, otherOption);
-                }); 
-            })
-            .catch(error => {
-                console.error("載入銀行列表失敗:", error.message);
-                showCustomAlert("無法載入銀行列表，請確認後端設定是否正確。");
-            });
-    }
+// index.html 中的 loadBankSelect 函式 (新版本)
+function loadBankSelect() {
+  // 直接使用 fetch 請求我們在 Vercel 上的新 API 端點
+  // 因為前端和後端在同一個專案下，我們可以使用相對路徑 '/api/getBanks'
+  fetch('/api/getBanks')
+    .then(response => {
+      if (!response.ok) {
+        // 如果伺服器回傳的不是成功狀態 (例如 500 錯誤)，就拋出錯誤
+        throw new Error('無法從伺服器獲取銀行列表。');
+      }
+      return response.json();
+    })
+    .then(banks => {
+      // 接收到後端傳來的 JSON 陣列 (例如 ['台北富邦', '國泰世華'])
+      const select = document.getElementById('bankSelect');
+      const otherOption = select.querySelector('option[value="other"]'); 
+      
+      // 清空舊的選項
+      while (select.options.length > 2) {
+        select.remove(1);
+      }
+
+      // 將新的銀行名稱填入下拉選單
+      if (banks && banks.length > 0) {
+        banks.forEach(function(name) { 
+          const opt = document.createElement('option'); 
+          opt.value = name; 
+          opt.textContent = name; 
+          select.insertBefore(opt, otherOption);
+        }); 
+      }
+    })
+    .catch(error => {
+      // 如果 fetch 過程或後續處理發生任何錯誤，就在這裡捕捉
+      console.error("載入銀行列表失敗:", error);
+      showCustomAlert("無法載入銀行列表，請確認後端設定是否正確。");
+    });
+}
 
     function sendLegacyVerification() {
         const email = document.getElementById('legacyEmail').value.trim();
