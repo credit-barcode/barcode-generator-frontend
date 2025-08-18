@@ -36,12 +36,12 @@ export default async function handler(request, response) {
       return response.status(401).json({ message: '帳號或密碼錯誤。' });
     }
 
-    // ▼▼▼ 【核心修正】啟用信箱驗證檢查 ▼▼▼
+// ▼▼▼ 【核心修正】啟用信箱驗證檢查 ▼▼▼
     if (userData.is_verified !== true) {
       // 如果 is_verified 欄位不是 true，就回傳 403 Forbidden 錯誤
       // reason: 'unverified' 這個欄位是為了讓前端可以做特殊處理
       return response.status(403).json({ 
-        success: false, // 明確表示登入不成功
+        success: false, 
         reason: 'unverified', 
         message: '此帳號尚未完成信箱驗證。' 
       });

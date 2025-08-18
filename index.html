@@ -281,6 +281,11 @@
 /**
  * @typedef {Error & {json?: object}} ApiError
  */
+// index.html 中的 callApi 函式 (最終安全版)
+
+/**
+ * @typedef {Error & {json?: object}} ApiError
+ */
     function callApi(endpoint, data) {
     return fetch(`/api/${endpoint}`, {
         method: 'POST',
@@ -289,13 +294,10 @@
     }).then(response => {
         return response.json().then(json => {
         if (!response.ok) {
-            // ▼▼▼ 【核心修正】 ▼▼▼
-            // 建立一個自訂的錯誤物件
             // 將後端回傳的完整 JSON 物件附加到這個錯誤上
             const error = /** @type {ApiError} */ (new Error(json.message || `伺服器回傳 ${response.status}`));
             error.json = json; // 將完整的 json 附加到 error 物件上
-            throw error; // 拋出這個帶有額外資訊的錯誤
-            // ▲▲▲ 【核心修正】 ▲▲▲
+            throw error;
         }
         return json;
         });
@@ -415,6 +417,7 @@ function register() {
     
     // index.html 中的 login (最終版本)
     // index.html 中的 login 函式 (安全強化版)
+    // index.html 中的 login 函式 (最終安全版)
     function login() {
         const account = document.getElementById('loginAccount').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
@@ -443,7 +446,7 @@ function register() {
                     document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
                     document.getElementById('loginMsg').innerText = '';
                 } else {
-                    // 如果是其他錯誤，就顯示通用的錯誤訊息
+                    // 如果是其他錯誤 (例如 401 密碼錯誤)，就顯示通用的錯誤訊息
                     document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
                 }
                 // ▲▲▲ 【核心修正】 ▲▲▲
