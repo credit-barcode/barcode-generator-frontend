@@ -265,14 +265,12 @@
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
     // ▼ 全域變數 ▼
-    let currentUserProfile = null; // 用於儲存登入後的使用者資料
+    let currentUserProfile = null;
     let accountToVerify = '';
+    let generatedBarcodeData = []; // 用於儲存後端回傳的條碼資料
     
     /**
      * 向 Vercel 後端 API 發送 POST 請求的統一函式
-     * @param {string} endpoint - API 的路徑名稱 (例如 'login', 'register')
-     * @param {object} data - 要發送的 JSON 資料
-     * @returns {Promise}
      */
     function callApi(endpoint, data) {
       return fetch(`/api/${endpoint}`, {
@@ -320,13 +318,13 @@
     }
     
     function showMainAppPage() {
-        showLogin(); // 先隱藏所有頁面
+        showLogin();
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
     }
 
     function showPreviewPage() {
-        showLogin(); // 先隱藏所有頁面
+        showLogin();
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('previewPage').style.display = 'block';
     }
@@ -369,7 +367,6 @@
                     accountToVerify = account;
                     document.getElementById('registerBox').style.display = 'none';
                     document.getElementById('verifyBox').style.display = 'flex';
-                    // TODO: 信箱驗證功能需要後端寄信 API 配合
                     document.getElementById('verifyInfoMsg').innerHTML = `註冊請求已送出！<br>信箱驗證功能開發中，請先返回登入。`;
                 }
             })
@@ -378,36 +375,28 @@
             });
     }
     
-// index.html 中的 login 函式 (最終版本)
-function login() {
-    const account = document.getElementById('loginAccount').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    if (!account || !password) { 
-        document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
-        return; 
+    function login() {
+        const account = document.getElementById('loginAccount').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        if (!account || !password) { 
+            document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
+            return; 
+        }
+        document.getElementById('loginMsg').innerText = '登入中...';
+        
+        callApi('login', { account, password })
+            .then(res => {
+                if (res.success) {
+                    currentUserProfile = res.profile;
+                    // TODO: 根據 res.profile 中的資料來更新 UI 上的顯示
+                    // 例如 updateQuotaDisplay(); setQrCountOptions(); 
+                    showMainAppPage();
+                }
+            })
+            .catch(err => {
+                document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
+            });
     }
-    document.getElementById('loginMsg').innerText = '登入中...';
-    
-    // 使用我們通用的 callApi 函式來呼叫 /api/login 端點
-    callApi('login', { account, password })
-        .then(res => {
-            if (res.success) {
-                // 登入成功
-                currentUserProfile = res.profile; // 將後端傳來的安全使用者資料存到全域變數
-                
-                // TODO: 根據 res.profile 中的資料來更新 UI 上的顯示
-                // updateQuotaDisplay(); 
-                // setQrCountOptions(); 
-                
-                // 顯示主應用程式頁面
-                showMainAppPage();
-            }
-        })
-        .catch(err => {
-            // 處理後端回傳的登入失敗訊息
-            document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
-        });
-}
     
     function loadBankSelect() {
       fetch('/api/getBanks')
@@ -435,96 +424,230 @@ function login() {
           showCustomAlert("無法載入銀行列表，請確認後端設定是否正確。");
         });
     }
+
+    function handleGenerateClick() { 
+        // 為了讓 UI 能操作，暫時註解掉輸入驗證
+        // if (!validateInputs()) return;
+        
+        showCustomAlert("正在後端計算條碼，請稍候...");
+        
+        const incrementType = document.getElementById('amountIncrementType').value;
+        const incrementAmount = (incrementType === 'custom') ? (parseInt(document.getElementById('customIncrementAmount').value, 10) || 0) : parseInt(incrementType, 10);
+        
+        const params = {
+            firstBarcode: document.getElementById("firstBarcode").value.trim().toUpperCase(),
+            secondBarcode: document.getElementById("secondBarcode").value.trim().toUpperCase(),
+            paymentDue: document.getElementById("paymentDue").value.trim(),
+            paymentAmount: document.getElementById("paymentAmount").value.trim(),
+            qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1, // 確保有預設值
+            barcodeType: document.getElementById("barcodeType").value,
+            incrementAmount: incrementAmount,
+        };
+
+        callApi('generateBarcodes', params)
+            .then(backendResult => {
+                closeCustomAlert();
+                generatedBarcodeData = backendResult;
+                generatePreviewUI();
+                showPreviewPage();
+            })
+            .catch(error => {
+                closeCustomAlert();
+                showCustomAlert("處理失敗：<br>" + error.message);
+            });
+    }
+
+    function generatePreviewUI() {
+        const container = document.getElementById("previewContainer");
+        container.innerHTML = "";
+        const downloadBtn = document.getElementById('downloadAllBtn');
+        downloadBtn.style.display = 'none';
+
+        if (!generatedBarcodeData || generatedBarcodeData.length === 0) return;
+        
+        // 預覽最多只顯示 10 筆
+        const displayLimit = 10;
+        generatedBarcodeData.slice(0, displayLimit).forEach(data => {
+            const wrapper = createBarcodeWrapper(data, false, false);
+            container.appendChild(wrapper);
+            wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
+                const barcodeValue = canvas.getAttribute('data-barcode');
+                JsBarcode(canvas, barcodeValue, { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
+            });
+        });
+
+        if (generatedBarcodeData.length > 0) {
+            downloadBtn.textContent = `全部下載條碼 (${generatedBarcodeData.length})`;
+            downloadBtn.style.display = 'inline-block';
+        }
+    }
     
+    function createBarcodeWrapper(data, includeTitle, includeReminder) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "qr-wrapper";
+        const serialNumber = document.createElement("div");
+        serialNumber.className = "serial-number";
+        serialNumber.textContent = data.serial;
+        wrapper.appendChild(serialNumber);
+        if (includeTitle) {
+            const title = document.createElement("div");
+            title.className = "barcode-title";
+            title.textContent = "超商繳費條碼";
+            wrapper.appendChild(title);
+        }
+        data.barcodes.forEach((code, idx) => {
+            const barcodeContainer = document.createElement("div");
+            const marginBottomValue = (idx < 2) ? (includeTitle ? "40px" : "36px") : "0";
+            let style = `margin-bottom: ${marginBottomValue}; text-align:center; overflow-x:auto; width:100%;`;
+            if (!includeTitle && idx === 0) style += `padding-top: 10px;`;
+            barcodeContainer.style.cssText = style;
+            const canvas = document.createElement("canvas");
+            canvas.className = "barcode-canvas";
+            canvas.setAttribute('data-barcode', code);
+            barcodeContainer.appendChild(canvas);
+            const textDiv = document.createElement("div");
+            textDiv.textContent = code;
+            textDiv.style.cssText = "font-family: monospace; font-size: 22px; letter-spacing: 1px; margin-top: 4px;";
+            barcodeContainer.appendChild(textDiv);
+            wrapper.appendChild(barcodeContainer);
+        });
+        if (includeReminder) {
+            const reminder = document.createElement("div");
+            reminder.className = "barcode-reminder";
+            reminder.textContent = "提醒您，超商繳款上限為2萬元。";
+            wrapper.appendChild(reminder);
+        }
+        return wrapper;
+    }
+    
+    function startDownloadProcess() {
+        if (generatedBarcodeData.length === 0) { return showCustomAlert("沒有可下載的項目。"); }
+        const msg = `<div class="download-alert-title">下載確認</div><div class="download-alert-desc">確定要下載全部 <b>${generatedBarcodeData.length}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
+        const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
+        document.getElementById('customAlertMsg').innerHTML = msg;
+        document.getElementById('customAlertButtons').innerHTML = buttons;
+        document.getElementById('customAlert').style.display = 'flex';
+        document.getElementById('confirmBtn').onclick = function() {
+            closeCustomAlert();
+            const includeTitle = document.getElementById('includeTitleForDownload').checked;
+            const includeReminder = document.getElementById('includeReminderForDownload').checked;
+            executeDownload(includeTitle, includeReminder);
+        };
+    }
+
+    function executeDownload(includeTitle, includeReminder) {
+        showCustomAlert("準備下載中，請稍候...");
+        const zip = new JSZip();
+        const tempContainer = document.createElement("div");
+        tempContainer.style.cssText = "position: fixed; left: -9999px; top: 0; padding: 28px 24px 20px 24px;";
+        document.body.appendChild(tempContainer);
+        
+        const promises = generatedBarcodeData.map(data => {
+            return new Promise((resolve, reject) => {
+                const wrapper = createBarcodeWrapper(data, includeTitle, includeReminder);
+                tempContainer.appendChild(wrapper);
+                
+                setTimeout(() => {
+                    try {
+                        wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
+                            JsBarcode(canvas, canvas.getAttribute('data-barcode'), { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
+                        });
+                        html2canvas(wrapper, { scale: 2 }).then(canvas => {
+                            const base64 = canvas.toDataURL("image/png").split(',')[1];
+                            zip.file(`信用卡帳單_${data.serial}.png`, base64, { base64: true });
+                            tempContainer.removeChild(wrapper);
+                            resolve();
+                        }).catch(reject);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }, 50);
+            });
+        });
+
+        Promise.all(promises).then(() => {
+            document.body.removeChild(tempContainer);
+            if (Object.keys(zip.files).length > 0) {
+                showCustomAlert("正在壓縮檔案...");
+                zip.generateAsync({ type: "blob" }).then(content => {
+                    saveAs(content, "信用卡帳單.zip");
+                    closeCustomAlert();
+                });
+            } else { 
+                showCustomAlert("沒有可下載的項目。"); 
+            }
+        }).catch(err => {
+            document.body.removeChild(tempContainer);
+            showCustomAlert('產生圖片失敗: ' + err.message);
+        });
+    }
+
     function validatePassword(password) {
       return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password);
     }
-
-    // ▼ 尚未遷移至新架構的函式 (保留結構) ▼
-    function handleGenerateClick() { 
-        showCustomAlert("條碼產生功能正在升級中，請稍候。");
-    }
-    function generatePreviewUI() {}
-    function createBarcodeWrapper(data, includeTitle, includeReminder) {}
-    function startDownloadProcess() {
-        showCustomAlert("下載功能正在升級中，請稍候。");
-    }
-    function initiateDeductAndDownload(includeTitle, includeReminder) {}
-    function executeDownload(includeTitle, includeReminder) {}
+    
+    // ▼ 尚未遷移或待重新設計的函式 ▼
     function clearPreviews() {}
-    function forgotPassword() { 
-        showCustomAlert("忘記密碼功能正在升級中。");
+    function forgotPassword() { showCustomAlert("忘記密碼功能正在升級中。"); }
+    function setQrCountOptions() {
+        // 暫時填充1-40個選項
+        const select = document.getElementById('qrCount');
+        select.innerHTML = '';
+        for (let i = 1; i <= 40; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            select.appendChild(option);
+        }
     }
-    function setQrCountOptions() {}
     function updateButtonLabels() { 
-        const count = parseInt(document.getElementById('qrCount').value, 10) || 0; 
+        const count = parseInt(document.getElementById('qrCount').value, 10) || 1; 
         document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
     }
-    function validateInputs() { 
-        // 為了讓 UI 能操作，暫時回傳 true
-        return true; 
-    }
-    function isValidMinguoDate(dateStr) { return true; }
-    function generateRequestKey() {}
-    function updateQuotaDisplay() {}
+    function validateInputs() { return true; }
+    function updateQuotaDisplay() { document.getElementById('quotaDisplay').innerText = currentUserProfile ? currentUserProfile.current_quota : 0; }
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {}
-    function sendLegacyVerification() {}
-    function verifyCode() {
-        showCustomAlert("信箱驗證功能正在升級中。");
-    }
-    function showProfile() {
-        showCustomAlert("會員資料功能正在升級中。");
-    }
+    function verifyCode() { showCustomAlert("信箱驗證功能正在升級中。"); }
+    function showProfile() { showCustomAlert("會員資料功能正在升級中。"); }
     function hideProfile() {}
     function saveProfile() {}
     function showAdminPanel() {}
     function hideAdminPanel() {}
     function loadSerialCodes() {}
-    function addSerialRow(serial = '', total = '', used = '') {}
-    function deleteSerialRow(btn) {}
+    function addSerialRow() {}
+    function deleteSerialRow() {}
     function saveSerialCodes() {}
     function showUserAdminPanel() {}
     function hideUserAdminPanel() {}
     function loadUsersForAdmin() {}
     function saveUsersByAdmin() {}
-
+    
     // ▼▼▼ 第二部分：事件綁定 ▼▼▼
     document.addEventListener('DOMContentLoaded', function() {
-        // --- 主要按鈕 ---
         document.getElementById('loginBtn').addEventListener('click', login);
         document.getElementById('registerBtn').addEventListener('click', register);
         document.getElementById('barcodeForm').addEventListener('submit', function(event) { event.preventDefault(); handleGenerateClick(); });
         document.getElementById('downloadAllBtn').addEventListener('click', startDownloadProcess);
         document.getElementById('backToGeneratorBtn').addEventListener('click', showMainAppPage);
-        // --- 頁面切換 ---
         document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
         document.getElementById('registerBackToLoginBtn').addEventListener('click', showLogin);
         document.getElementById('showForgotBtn').addEventListener('click', showForgotBox);
         document.getElementById('forgotBackBtn').addEventListener('click', hideForgotBox);
-        // --- 密碼與驗證 ---
         document.getElementById('forgotSendBtn').addEventListener('click', forgotPassword);
         document.getElementById('verifyBtn').addEventListener('click', verifyCode);
         document.getElementById('verifyBackToLoginBtn').addEventListener('click', showLogin);
-        document.getElementById('legacySendBtn').addEventListener('click', sendLegacyVerification);
-        document.getElementById('legacyLaterBtn').addEventListener('click', showLogin);
-        // --- 會員與管理 ---
         document.getElementById('showProfileBtn').addEventListener('click', showProfile);
         document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
         document.getElementById('cancelProfileBtn').addEventListener('click', hideProfile);
         document.getElementById('adminBtn').addEventListener('click', showAdminPanel);
         document.getElementById('cancelAdminBtn').addEventListener('click', hideAdminPanel);
-        document.getElementById('addRowBtn').addEventListener('click', () => addSerialRow());
+        document.getElementById('addRowBtn').addEventListener('click', addSerialRow);
         document.getElementById('saveSerialsBtn').addEventListener('click', saveSerialCodes);
         document.getElementById('serialTableBody').addEventListener('click', function(event) { if (event.target.classList.contains('delete-row-btn')) { deleteSerialRow(event.target); } });
         document.getElementById('userAdminBtn').addEventListener('click', showUserAdminPanel);
         document.getElementById('saveUsersBtn').addEventListener('click', saveUsersByAdmin);
         document.getElementById('cancelUserAdminBtn').addEventListener('click', hideUserAdminPanel);
-        // --- 輸入監聽 ---
-        document.getElementById('firstBarcode').addEventListener('input', onFirstBarcodeInput);
-        document.getElementById('secondBarcode').addEventListener('input', clearPreviews);
-        document.getElementById('paymentDue').addEventListener('input', clearPreviews);
-        document.getElementById('paymentAmount').addEventListener('input', clearPreviews);
         document.getElementById('bankSelect').addEventListener('change', onBankSelectChange);
         document.getElementById('qrCount').addEventListener('change', updateButtonLabels);
         document.getElementById('amountIncrementType').addEventListener('change', function() {
@@ -533,6 +656,8 @@ function login() {
         
         // --- 初始載入 ---
         loadBankSelect();
+        setQrCountOptions(); // 預先填充數量選項
+        updateButtonLabels();
     });
   </script>
 </body>
