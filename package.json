@@ -19,6 +19,7 @@
   "homepage": "https://github.com/credit-barcode/barcode-generator-frontend#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "resend": "^6.0.1"
   }
 }
