@@ -1,0 +1,23 @@
+{
+  "name": "barcode-generator-frontend",
+  "version": "1.0.0",
+  "description": "繳費條碼",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/credit-barcode/barcode-generator-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/credit-barcode/barcode-generator-frontend/issues"
+  },
+  "homepage": "https://github.com/credit-barcode/barcode-generator-frontend#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.55.0"
+  }
+}
