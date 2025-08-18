@@ -408,33 +408,49 @@ function register() {
         });
 }
     
-// index.html 中的 login (最終版本)
-function login() {
-    const account = document.getElementById('loginAccount').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    if (!account || !password) { /* ... */ return; }
-    document.getElementById('loginMsg').innerText = '登入中...';
-    
-    callApi('login', { account, password })
-        .then(res => {
-            if (res.success && res.token) {
-                // ▼▼▼ 【核心新增】儲存 Token ▼▼▼
-                // 將後端回傳的 token 儲存到瀏覽器的 localStorage 中
-                // 這樣即使重新整理頁面，token 也不會消失
-                localStorage.setItem('authToken', res.token);
-                // ▲▲▲ 【核心新增】 ▲▲▲
-
-                currentUserProfile = res.profile;
-                showMainAppPage();
-            } else {
-                // 如果後端沒有回傳 token，也視為登入失敗
-                throw new Error('登入失敗，無法獲取授權。');
-            }
-        })
-        .catch(err => {
-            document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
-        });
-}
+    // index.html 中的 login (最終版本)
+    // index.html 中的 login 函式 (最終版)
+    function login() {
+        const account = document.getElementById('loginAccount').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        if (!account || !password) { 
+            document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
+            return; 
+        }
+        document.getElementById('loginMsg').innerText = '登入中...';
+        
+        callApi('login', { account, password })
+            .then(res => {
+                if (res.success && res.token) {
+                    localStorage.setItem('authToken', res.token);
+                    currentUserProfile = res.profile;
+                    showMainAppPage();
+                }
+            })
+            .catch(err => {
+                // ▼▼▼ 【核心修正】處理特殊錯誤情況 ▼▼▼
+                try {
+                    // 嘗試將錯誤訊息解析為 JSON 物件
+                    // 後端回傳的錯誤 response.body 透過 .json() 轉換後，在前端的 err.message 中會是字串形式
+                    // 我們需要將它還原成物件
+                    const errorJson = JSON.parse(err.message);
+                    
+                    if (errorJson.reason === 'unverified') {
+                        // 如果是未驗證的錯誤，就引導使用者去驗證
+                        accountToVerify = account;
+                        document.getElementById('loginBox').style.display = 'none';
+                        document.getElementById('verifyBox').style.display = 'flex';
+                        document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
+                        document.getElementById('loginMsg').innerText = '';
+                        return; // 結束函式，不再顯示下方的通用錯誤
+                    }
+                } catch (e) {
+                    // 如果錯誤訊息不是 JSON 格式，或者沒有 reason 欄位
+                    // 就走正常的、通用的錯誤顯示流程
+                    document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
+                }
+            });
+    }
     
     function loadBankSelect() {
       fetch('/api/getBanks')
