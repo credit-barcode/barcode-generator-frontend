@@ -101,16 +101,20 @@
     <div id="registerMsg"></div>
   </div>
 
-  <div id="verifyBox" style="display:none;">
+    <!-- index.html 中 id="verifyBox" 的部分 -->
+    <div id="verifyBox" style="display:none;">
     <h3>請驗證您的信箱</h3>
-    <p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p>
+    <p id="verifyInfoMsg" style="..."></p>
     <div class="form-group">
-      <input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" />
+        <input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" />
     </div>
     <button id="verifyBtn">驗證</button>
+    <!-- ▼▼▼ 【核心新增】 ▼▼▼ -->
+    <button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button>
+    <!-- ▲▲▲ 【核心新增】 ▲▲▲ -->
     <button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button>
     <div id="verifyMsg"></div>
-  </div>
+    </div>
 
   <div id="legacyVerifyBox" style="display:none;">
     <h3>系統更新 - 請驗證信箱</h3>
@@ -656,6 +660,24 @@ function register() {
     function updateQuotaDisplay() { document.getElementById('quotaDisplay').innerText = currentUserProfile ? currentUserProfile.current_quota : 0; }
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {}
+
+    // index.html 的 <script> 區塊中
+    function resendCode() {
+        const msgDiv = document.getElementById('verifyMsg');
+        msgDiv.innerText = '正在重新寄送...';
+        
+        callApi('resendCode', { account: accountToVerify })
+            .then(res => {
+                if (res.success) {
+                    msgDiv.innerText = '';
+                    showCustomAlert('新的驗證碼已成功寄出，請檢查您的信箱。');
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = err.message;
+            });
+    }
+
         // index.html 中的 verifyCode 函式 (最終版本)
     function verifyCode() {
         const code = document.getElementById('verifyCode').value.trim();
@@ -671,17 +693,18 @@ function register() {
         // 使用 callApi 呼叫後端 /api/verifyCode 進行驗證
         // 我們將之前儲存的全域變數 accountToVerify 一起送出
         callApi('verifyCode', { account: accountToVerify, code: code })
-            .then(res => {
-                if (res.success) {
-                    msgDiv.innerText = '';
-                    showCustomAlert('信箱驗證成功！\n現在您可以登入了。');
-                    showLogin(); // 驗證成功後，跳轉回登入頁面
-                }
-            })
-            .catch(err => {
-                msgDiv.innerText = err.message;
-            });
-    }
+                .then(res => { /* ... */ })
+                .catch(err => {
+                    // ▼▼▼ 【核心修改】 ▼▼▼
+                    if (err.message.includes('過期')) {
+                        msgDiv.innerText = '驗證碼已過期，請點擊下方的「重新寄送」按鈕獲取新碼。';
+                    } else {
+                        msgDiv.innerText = err.message;
+                    }
+                    // ▲▲▲ 【核心修改】 ▲▲▲
+                });
+        }
+
     function showProfile() { showCustomAlert("會員資料功能正在升級中。"); }
     function hideProfile() {}
     function saveProfile() {}
@@ -709,6 +732,7 @@ function register() {
         document.getElementById('forgotBackBtn').addEventListener('click', hideForgotBox);
         document.getElementById('forgotSendBtn').addEventListener('click', forgotPassword);
         document.getElementById('verifyBtn').addEventListener('click', verifyCode);
+        document.getElementById('resendCodeBtn').addEventListener('click', resendCode);
         document.getElementById('verifyBackToLoginBtn').addEventListener('click', showLogin);
         document.getElementById('showProfileBtn').addEventListener('click', showProfile);
         document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
