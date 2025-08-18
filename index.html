@@ -640,7 +640,7 @@
         clearPreviews();
     }
         
-// index.html 中的 loadBankSelect 函式 (新版本)
+// index.html 中的 loadBankSelect 函式 (最終版本)
 function loadBankSelect() {
   // 直接使用 fetch 請求我們在 Vercel 上的新 API 端點
   // 因為前端和後端在同一個專案下，我們可以使用相對路徑 '/api/getBanks'
@@ -648,7 +648,7 @@ function loadBankSelect() {
     .then(response => {
       if (!response.ok) {
         // 如果伺服器回傳的不是成功狀態 (例如 500 錯誤)，就拋出錯誤
-        throw new Error('無法從伺服器獲取銀行列表。');
+        return response.json().then(err => { throw new Error(err.error || '無法從伺-服器獲取銀行列表。') });
       }
       return response.json();
     })
