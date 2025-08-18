@@ -646,7 +646,32 @@ function login() {
     function updateQuotaDisplay() { document.getElementById('quotaDisplay').innerText = currentUserProfile ? currentUserProfile.current_quota : 0; }
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {}
-    function verifyCode() { showCustomAlert("信箱驗證功能正在升級中。"); }
+        // index.html 中的 verifyCode 函式 (最終版本)
+    function verifyCode() {
+        const code = document.getElementById('verifyCode').value.trim();
+        const msgDiv = document.getElementById('verifyMsg');
+        msgDiv.innerText = '';
+
+        if (!code || code.length !== 6) {
+            msgDiv.innerText = '請輸入 6 位數驗證碼。';
+            return;
+        }
+        msgDiv.innerText = '驗證中...';
+        
+        // 使用 callApi 呼叫後端 /api/verifyCode 進行驗證
+        // 我們將之前儲存的全域變數 accountToVerify 一起送出
+        callApi('verifyCode', { account: accountToVerify, code: code })
+            .then(res => {
+                if (res.success) {
+                    msgDiv.innerText = '';
+                    showCustomAlert('信箱驗證成功！\n現在您可以登入了。');
+                    showLogin(); // 驗證成功後，跳轉回登入頁面
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = err.message;
+            });
+    }
     function showProfile() { showCustomAlert("會員資料功能正在升級中。"); }
     function hideProfile() {}
     function saveProfile() {}
