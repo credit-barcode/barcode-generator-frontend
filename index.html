@@ -378,28 +378,36 @@
             });
     }
     
-    function login() {
-        const account = document.getElementById('loginAccount').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!account || !password) { 
-            document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
-            return; 
-        }
-        document.getElementById('loginMsg').innerText = '登入中...';
-        
-        // TODO: 待 /api/login 端點建立後，取消註解並完成對接
-        // callApi('login', { account, password })
-        //     .then(res => {
-        //         // ... 處理登入成功 ...
-        //         // 例如儲存 token, currentUserProfile
-        //         showMainAppPage();
-        //     })
-        //     .catch(err => {
-        //         document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
-        //     });
-        showCustomAlert("登入功能正在升級中。"); // 暫時提示
-        document.getElementById('loginMsg').innerText = ''; // 清除「登入中...」
+// index.html 中的 login 函式 (最終版本)
+function login() {
+    const account = document.getElementById('loginAccount').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!account || !password) { 
+        document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
+        return; 
     }
+    document.getElementById('loginMsg').innerText = '登入中...';
+    
+    // 使用我們通用的 callApi 函式來呼叫 /api/login 端點
+    callApi('login', { account, password })
+        .then(res => {
+            if (res.success) {
+                // 登入成功
+                currentUserProfile = res.profile; // 將後端傳來的安全使用者資料存到全域變數
+                
+                // TODO: 根據 res.profile 中的資料來更新 UI 上的顯示
+                // updateQuotaDisplay(); 
+                // setQrCountOptions(); 
+                
+                // 顯示主應用程式頁面
+                showMainAppPage();
+            }
+        })
+        .catch(err => {
+            // 處理後端回傳的登入失敗訊息
+            document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
+        });
+}
     
     function loadBankSelect() {
       fetch('/api/getBanks')
