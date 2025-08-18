@@ -351,39 +351,62 @@
     }
 
     // ▼ 核心功能函式 ▼
-    function register() {
-        const account = document.getElementById('registerAccount').value.trim();
-        const password = document.getElementById('registerPassword').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const serial = document.getElementById('registerSerial').value.trim();
-        const msgDiv = document.getElementById('registerMsg');
-        msgDiv.innerText = '';
+// index.html 中的 register 函式 (最終版本)
 
-        if (!account || !password || !email || !serial) {
-            msgDiv.innerText = '所有欄位皆為必填';
-            return;
-        }
-        if (!validatePassword(password)) {
-            msgDiv.innerText = '密碼格式不符，請確認格式';
-            return;
-        }
+function register() {
+    // 步驟 1: 從 HTML 表單中獲取使用者輸入的所有資料
+    const account = document.getElementById('registerAccount').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const serial = document.getElementById('registerSerial').value.trim();
+    const msgDiv = document.getElementById('registerMsg');
+    
+    // 清空上一次的錯誤訊息
+    msgDiv.innerText = '';
 
-        msgDiv.innerText = '註冊中...';
-        
-        callApi('register', { username: account, password, email, serial })
-            .then(res => {
-                if (res.result === 'success_pending_verification') {
-                    msgDiv.innerText = '';
-                    accountToVerify = account;
-                    document.getElementById('registerBox').style.display = 'none';
-                    document.getElementById('verifyBox').style.display = 'flex';
-                    document.getElementById('verifyInfoMsg').innerHTML = `註冊請求已送出！<br>信箱驗證功能開發中，請先返回登入。`;
-                }
-            })
-            .catch(err => {
-                msgDiv.innerText = err.message;
-            });
+    // 步驟 2: 在前端進行基本的輸入驗證
+    // 檢查是否有任何欄位為空
+    if (!account || !password || !email || !serial) {
+        msgDiv.innerText = '所有欄位皆為必填';
+        return; // 中斷函式執行
     }
+    
+    // 檢查密碼格式是否符合要求
+    if (!validatePassword(password)) {
+        msgDiv.innerText = '密碼格式不符，請確認格式';
+        return; // 中斷函式執行
+    }
+
+    // 步驟 3: 更新 UI，提示使用者正在處理中
+    msgDiv.innerText = '註冊中...';
+    
+    // 步驟 4: 使用 callApi 函式向後端 /api/register 端點發送請求
+    callApi('register', { username: account, password, email, serial })
+        .then(res => {
+            // 步驟 5: 處理後端回傳的成功回應
+            // 檢查後端回傳的結果是否為 'success_pending_verification'
+            if (res.result === 'success_pending_verification') {
+                // 清空「註冊中...」的提示
+                msgDiv.innerText = '';
+                // 將目前要驗證的帳號存到全域變數中，供驗證碼頁面使用
+                accountToVerify = account;
+                
+                // 切換顯示的頁面：隱藏註冊頁面，顯示驗證碼輸入頁面
+                document.getElementById('registerBox').style.display = 'none';
+                document.getElementById('verifyBox').style.display = 'flex';
+                
+                // 更新驗證碼頁面的提示文字，告訴使用者要去哪裡收信
+                document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
+            }
+        })
+        .catch(err => {
+            // 步驟 6: 處理後端回傳的錯誤回應
+            // .catch() 會捕捉到所有後端回傳的非 2xx 狀態碼的錯誤
+            // err.message 就是我們在後端 JSON 中定義的 message 內容
+            // 例如：「註冊碼無效」、「此帳號已被註冊」等
+            msgDiv.innerText = err.message;
+        });
+}
     
 // index.html 中的 login (最終版本)
 function login() {
