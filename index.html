@@ -272,19 +272,29 @@
     /**
      * 向 Vercel 後端 API 發送 POST 請求的統一函式
      */
+    // index.html 中的 callApi (最終版本)
     function callApi(endpoint, data) {
-      return fetch(`/api/${endpoint}`, {
+    const headers = { 'Content-Type': 'application/json' };
+    
+    // 從 localStorage 中讀取我們儲存的 token
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        // 如果 token 存在，就將它加入到請求的 Authorization 標頭中
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(`/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers, // 使用我們建立的 headers 物件
         body: JSON.stringify(data)
-      }).then(response => {
+    }).then(response => {
         return response.json().then(json => {
-          if (!response.ok) {
+        if (!response.ok) {
             throw new Error(json.message || `伺服器回傳 ${response.status}`);
-          }
-          return json;
+        }
+        return json;
         });
-      });
+    });
     }
     
     // ▼ UI 顯示/隱藏控制函式 ▼
@@ -375,28 +385,33 @@
             });
     }
     
-    function login() {
-        const account = document.getElementById('loginAccount').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!account || !password) { 
-            document.getElementById('loginMsg').innerText = '帳號和密碼不能為空';
-            return; 
-        }
-        document.getElementById('loginMsg').innerText = '登入中...';
-        
-        callApi('login', { account, password })
-            .then(res => {
-                if (res.success) {
-                    currentUserProfile = res.profile;
-                    // TODO: 根據 res.profile 中的資料來更新 UI 上的顯示
-                    // 例如 updateQuotaDisplay(); setQrCountOptions(); 
-                    showMainAppPage();
-                }
-            })
-            .catch(err => {
-                document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
-            });
-    }
+// index.html 中的 login (最終版本)
+function login() {
+    const account = document.getElementById('loginAccount').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!account || !password) { /* ... */ return; }
+    document.getElementById('loginMsg').innerText = '登入中...';
+    
+    callApi('login', { account, password })
+        .then(res => {
+            if (res.success && res.token) {
+                // ▼▼▼ 【核心新增】儲存 Token ▼▼▼
+                // 將後端回傳的 token 儲存到瀏覽器的 localStorage 中
+                // 這樣即使重新整理頁面，token 也不會消失
+                localStorage.setItem('authToken', res.token);
+                // ▲▲▲ 【核心新增】 ▲▲▲
+
+                currentUserProfile = res.profile;
+                showMainAppPage();
+            } else {
+                // 如果後端沒有回傳 token，也視為登入失敗
+                throw new Error('登入失敗，無法獲取授權。');
+            }
+        })
+        .catch(err => {
+            document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
+        });
+}
     
     function loadBankSelect() {
       fetch('/api/getBanks')
