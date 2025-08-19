@@ -416,8 +416,7 @@ function register() {
 }
     
     // index.html 中的 login (最終版本)
-    // index.html 中的 login 函式 (安全強化版)
-    // index.html 中的 login 函式 (最終安全版)
+    // index.html 中的 login 函式 (最終完整版)
     function login() {
         const account = document.getElementById('loginAccount').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
@@ -430,26 +429,37 @@ function register() {
         callApi('login', { account, password })
             .then(res => {
                 if (res.success && res.token) {
+                    // 登入成功，儲存 Token 和使用者資料
                     localStorage.setItem('authToken', res.token);
                     currentUserProfile = res.profile;
+
+                    // 【核心修正】啟用 UI 更新
+                    updateQuotaDisplay(); 
+                    setQrCountOptions(); 
+                    updateButtonLabels();
+                    
+                    // 顯示主應用程式頁面
                     showMainAppPage();
+                } else {
+                    // 如果後端回傳成功但沒有 token，這是一種非預期狀況，同樣視為失敗
+                    throw new Error('登入失敗，無法獲取授權。');
                 }
             })
             .catch(err => {
-                // ▼▼▼ 【核心修正】 ▼▼▼
-                // 現在我們可以安全地檢查 err.json 是否存在，以及它內部的 reason 屬性
+                // 【錯誤處理邏輯 - 完整版】
+                // 檢查錯誤物件上是否有我們附加的 json 屬性
                 if (err.json && err.json.reason === 'unverified') {
-                    // 如果是未驗證的錯誤，就引導使用者去驗證
+                    // 如果是「未驗證」的特定錯誤，就引導使用者去驗證
                     accountToVerify = account;
                     document.getElementById('loginBox').style.display = 'none';
                     document.getElementById('verifyBox').style.display = 'flex';
                     document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
-                    document.getElementById('loginMsg').innerText = '';
+                    document.getElementById('loginMsg').innerText = ''; // 清除「登入中...」
                 } else {
-                    // 如果是其他錯誤 (例如 401 密碼錯誤)，就顯示通用的錯誤訊息
+                    // 如果是其他任何錯誤 (例如 401 密碼錯誤, 500 伺服器錯誤等)
+                    // 就顯示通用的錯誤訊息
                     document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
                 }
-                // ▲▲▲ 【核心修正】 ▲▲▲
             });
     }
     
@@ -643,16 +653,57 @@ function register() {
     
     // ▼ 尚未遷移或待重新設計的函式 ▼
     function clearPreviews() {}
-    function forgotPassword() { showCustomAlert("忘記密碼功能正在升級中。"); }
+    // index.html 中的 forgotPassword 函式 (最終版)
+    function forgotPassword() { 
+        const account = document.getElementById('forgotAccount').value.trim(); // 帳號欄位可能不再需要，但我們先保留
+        const email = document.getElementById('forgotEmail').value.trim(); 
+        const msgDiv = document.getElementById('forgotMsg');
+        
+        if (!email) { 
+            msgDiv.innerText = '請輸入您註冊時使用的電子信箱';
+            return;
+        }
+
+        msgDiv.innerText = '處理中...'; 
+        
+        callApi('forgotPassword', { email: email })
+            .then(res => {
+                // 為了安全，無論成功或失敗，都顯示同一個通用訊息
+                msgDiv.innerText = '';
+                showCustomAlert(res.message);
+            })
+            .catch(err => {
+                // 即使發生網路錯誤，也顯示通用訊息
+                msgDiv.innerText = '';
+                showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封密碼重設郵件。');
+            });
+    }
+
+    // index.html 中的 setQrCountOptions 函式 (最終版)
     function setQrCountOptions() {
-        // 暫時填充1-40個選項
         const select = document.getElementById('qrCount');
-        select.innerHTML = '';
-        for (let i = 1; i <= 40; i++) {
+        const generateBtn = document.getElementById("generateBtn");
+        select.innerHTML = "";
+
+        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
+        const max = Math.min(40, quota); // 最多可選 40 張，或剩餘額度
+
+        if (max > 0) {
+            for (let i = 1; i <= max; i++) { 
+                const option = document.createElement('option'); 
+                option.value = i; 
+                option.textContent = i; 
+                select.appendChild(option); 
+            }
+            select.disabled = false;
+            generateBtn.disabled = false;
+        } else {
             const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
+            option.value = 0;
+            option.textContent = "0";
             select.appendChild(option);
+            select.disabled = true;
+            generateBtn.disabled = true;
         }
     }
     function updateButtonLabels() { 
@@ -660,7 +711,11 @@ function register() {
         document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
     }
     function validateInputs() { return true; }
-    function updateQuotaDisplay() { document.getElementById('quotaDisplay').innerText = currentUserProfile ? currentUserProfile.current_quota : 0; }
+        // index.html 中的 updateQuotaDisplay 函式 (最終版)
+    function updateQuotaDisplay() {
+        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
+        document.getElementById('quotaDisplay').innerText = quota;
+    }
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {}
 
