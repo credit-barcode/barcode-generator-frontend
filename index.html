@@ -271,7 +271,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-  <script>
+    <script>
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
     // ▼ 全域變數 ▼
@@ -547,15 +547,13 @@
         return wrapper;
     }
     
-    // index.html 中的 startDownloadProcess (最終版)
     function startDownloadProcess() {
         const qrCount = generatedBarcodeData.length;
         if (qrCount === 0) {
             return showCustomAlert("沒有可下載的項目。");
         }
         
-        // UI 提示的邏輯不變
-        const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div>...`; // 省略部分 HTML
+        const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
         const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
         document.getElementById('customAlertMsg').innerHTML = msg;
         document.getElementById('customAlertButtons').innerHTML = buttons;
@@ -565,24 +563,19 @@
             closeCustomAlert();
             showCustomAlert("正在與伺服器確認額度...");
 
-            // ▼▼▼ 【核心修正】先呼叫後端 API 進行扣款 ▼▼▼
             callApi('deductQuota', { countToDeduct: qrCount })
                 .then(res => {
                     if (res.success) {
-                        // 扣款成功！更新前端儲存的使用者資料
                         currentUserProfile.current_quota = res.newQuota;
                         
-                        // 現在才執行真正的前端下載邏輯
                         const includeTitle = document.getElementById('includeTitleForDownload').checked;
                         const includeReminder = document.getElementById('includeReminderForDownload').checked;
                         executeDownload(includeTitle, includeReminder);
                     }
                 })
                 .catch(err => {
-                    // 如果後端回傳任何錯誤 (例如額度不足)，就顯示錯誤訊息
                     showCustomAlert('操作失敗：<br>' + err.message);
                 });
-            // ▲▲▲ 【核心修正】 ▲▲▲
         };
     }
 
@@ -713,7 +706,6 @@
         }
     }
     
-    // ▼ 尚未遷移或待重新設計的函式 ▼
     function clearPreviews() {
         document.getElementById('previewContainer').innerHTML = '';
         document.getElementById('downloadAllBtn').style.display = 'none';
@@ -755,13 +747,17 @@
         return true;
     }
     
-    // ▼▼▼ 第二部分：事件綁定 ▼▼▼
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('loginBtn').addEventListener('click', login);
         document.getElementById('registerBtn').addEventListener('click', register);
         document.getElementById('barcodeForm').addEventListener('submit', function(event) { event.preventDefault(); handleGenerateClick(); });
         document.getElementById('downloadAllBtn').addEventListener('click', startDownloadProcess);
-        document.getElementById('backToGeneratorBtn').addEventListener('click', showMainAppPage);
+        document.getElementById('backToGeneratorBtn').addEventListener('click', function() {
+            updateQuotaDisplay();
+            setQrCountOptions();
+            updateButtonLabels();
+            showMainAppPage();
+        });
         document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
         document.getElementById('registerBackToLoginBtn').addEventListener('click', showLogin);
         document.getElementById('showForgotBtn').addEventListener('click', showForgotBox);
@@ -784,14 +780,14 @@
         document.getElementById('bankSelect').addEventListener('change', onBankSelectChange);
         document.getElementById('qrCount').addEventListener('change', updateButtonLabels);
         document.getElementById('amountIncrementType').addEventListener('change', function() {
-        // DOMContentLoaded 中的修改
-        document.getElementById('backToGeneratorBtn').addEventListener('click', function() {
-            // 返回主頁面前，手動更新一次 UI 顯示
-            updateQuotaDisplay();
-            setQrCountOptions();
-            updateButtonLabels();
-            showMainAppPage();
+            document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
         });
+        
+        loadBankSelect();
+        setQrCountOptions();
+        updateButtonLabels();
+    });
   </script>
-</body>
+
+  </body>
 </html>
