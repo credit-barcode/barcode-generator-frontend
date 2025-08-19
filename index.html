@@ -101,20 +101,17 @@
     <div id="registerMsg"></div>
   </div>
 
-    <!-- index.html 中 id="verifyBox" 的部分 -->
-    <div id="verifyBox" style="display:none;">
+  <div id="verifyBox" style="display:none;">
     <h3>請驗證您的信箱</h3>
-    <p id="verifyInfoMsg" style="..."></p>
+    <p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p>
     <div class="form-group">
-        <input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" />
+      <input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" />
     </div>
     <button id="verifyBtn">驗證</button>
-    <!-- ▼▼▼ 【核心新增】 ▼▼▼ -->
     <button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button>
-    <!-- ▲▲▲ 【核心新增】 ▲▲▲ -->
     <button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button>
     <div id="verifyMsg"></div>
-    </div>
+  </div>
 
   <div id="legacyVerifyBox" style="display:none;">
     <h3>系統更新 - 請驗證信箱</h3>
@@ -127,7 +124,18 @@
     <div id="legacyVerifyMsg"></div>
   </div>
 
-  <div id="forgotBox" style="display:none;"><h3>忘記密碼</h3><input id="forgotAccount" type="text" placeholder="帳號" /><input id="forgotEmail" type="email" placeholder="註冊信箱" /><button id="forgotSendBtn">寄送密碼提示</button><button id="forgotBackBtn" style="background-color:#6c757d;">返回</button><div id="forgotMsg"></div></div>
+  <div id="forgotBox" style="display:none;">
+    <h3>忘記密碼</h3>
+    <div class="form-group" style="margin-bottom:8px;">
+        <input id="forgotAccount" type="text" placeholder="帳號" />
+    </div>
+    <div class="form-group">
+        <input id="forgotEmail" type="email" placeholder="註冊信箱" />
+    </div>
+    <button id="forgotSendBtn">寄送密碼提示</button>
+    <button id="forgotBackBtn" style="background-color:#6c757d;">返回</button>
+    <div id="forgotMsg"></div>
+  </div>
   
   <div id="profileBox" style="display:none;">
     <h3>會員資料</h3>
@@ -184,10 +192,8 @@
                     <input type="text" id="secondBarcode" maxlength="16" pattern="[A-Za-z0-9]{16}" title="請輸入 16 位英文或數字" required class="uppercase-input" placeholder="請謹慎確認" />
                     <label>繳費期限 (YYYMMDD)</label>
                     <input type="text" id="paymentDue" maxlength="7" pattern="^[0-9]{7}$" title="請輸入正確格式（YYYMMDD）" required />
-                    
                     <label>繳費金額</label>
                     <input type="text" id="paymentAmount" pattern="^[0-9]+$" title="請輸入數字金額" required />
-                    
                     <label>金額遞增</label>
                     <select id="amountIncrementType">
                         <option value="0">無 (金額固定)</option>
@@ -197,7 +203,6 @@
                         <option value="custom">自訂</option>
                     </select>
                     <input type="number" id="customIncrementAmount" placeholder="請輸入自訂遞增金額" style="display:none;" />
-
                     <label>條碼數量 (剩餘 <span id="quotaDisplay">0</span> 張)</label>
                     <select id="qrCount"></select>
                     <button type="submit" id="generateBtn">條碼產生器</button>
@@ -265,43 +270,36 @@
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
   <script>
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
     // ▼ 全域變數 ▼
     let currentUserProfile = null;
     let accountToVerify = '';
-    let generatedBarcodeData = []; // 用於儲存後端回傳的條碼資料
+    let generatedBarcodeData = [];
     
-    /**
-     * 向 Vercel 後端 API 發送 POST 請求的統一函式
-     */
-// index.html 中的 callApi 函式 (安全強化版)
-
-/**
- * @typedef {Error & {json?: object}} ApiError
- */
-// index.html 中的 callApi 函式 (最終安全版)
-
-/**
- * @typedef {Error & {json?: object}} ApiError
- */
+    /** @typedef {Error & {json?: object}} ApiError */
     function callApi(endpoint, data) {
-    return fetch(`/api/${endpoint}`, {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return fetch(`/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify(data)
-    }).then(response => {
+      }).then(response => {
         return response.json().then(json => {
-        if (!response.ok) {
-            // 將後端回傳的完整 JSON 物件附加到這個錯誤上
+          if (!response.ok) {
             const error = /** @type {ApiError} */ (new Error(json.message || `伺服器回傳 ${response.status}`));
-            error.json = json; // 將完整的 json 附加到 error 物件上
+            error.json = json;
             throw error;
-        }
-        return json;
+          }
+          return json;
         });
-    });
+      });
     }
     
     // ▼ UI 顯示/隱藏控制函式 ▼
@@ -358,65 +356,40 @@
     }
 
     // ▼ 核心功能函式 ▼
-// index.html 中的 register 函式 (最終版本)
+    function register() {
+        const account = document.getElementById('registerAccount').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        const email = document.getElementById('registerEmail').value.trim();
+        const serial = document.getElementById('registerSerial').value.trim();
+        const msgDiv = document.getElementById('registerMsg');
+        msgDiv.innerText = '';
 
-function register() {
-    // 步驟 1: 從 HTML 表單中獲取使用者輸入的所有資料
-    const account = document.getElementById('registerAccount').value.trim();
-    const password = document.getElementById('registerPassword').value.trim();
-    const email = document.getElementById('registerEmail').value.trim();
-    const serial = document.getElementById('registerSerial').value.trim();
-    const msgDiv = document.getElementById('registerMsg');
-    
-    // 清空上一次的錯誤訊息
-    msgDiv.innerText = '';
+        if (!account || !password || !email || !serial) {
+            msgDiv.innerText = '所有欄位皆為必填';
+            return;
+        }
+        if (!validatePassword(password)) {
+            msgDiv.innerText = '密碼格式不符，請確認格式';
+            return;
+        }
 
-    // 步驟 2: 在前端進行基本的輸入驗證
-    // 檢查是否有任何欄位為空
-    if (!account || !password || !email || !serial) {
-        msgDiv.innerText = '所有欄位皆為必填';
-        return; // 中斷函式執行
+        msgDiv.innerText = '註冊中...';
+        
+        callApi('register', { username: account, password, email, serial })
+            .then(res => {
+                if (res.result === 'success_pending_verification') {
+                    msgDiv.innerText = '';
+                    accountToVerify = account;
+                    document.getElementById('registerBox').style.display = 'none';
+                    document.getElementById('verifyBox').style.display = 'flex';
+                    document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = err.message;
+            });
     }
     
-    // 檢查密碼格式是否符合要求
-    if (!validatePassword(password)) {
-        msgDiv.innerText = '密碼格式不符，請確認格式';
-        return; // 中斷函式執行
-    }
-
-    // 步驟 3: 更新 UI，提示使用者正在處理中
-    msgDiv.innerText = '註冊中...';
-    
-    // 步驟 4: 使用 callApi 函式向後端 /api/register 端點發送請求
-    callApi('register', { username: account, password, email, serial })
-        .then(res => {
-            // 步驟 5: 處理後端回傳的成功回應
-            // 檢查後端回傳的結果是否為 'success_pending_verification'
-            if (res.result === 'success_pending_verification') {
-                // 清空「註冊中...」的提示
-                msgDiv.innerText = '';
-                // 將目前要驗證的帳號存到全域變數中，供驗證碼頁面使用
-                accountToVerify = account;
-                
-                // 切換顯示的頁面：隱藏註冊頁面，顯示驗證碼輸入頁面
-                document.getElementById('registerBox').style.display = 'none';
-                document.getElementById('verifyBox').style.display = 'flex';
-                
-                // 更新驗證碼頁面的提示文字，告訴使用者要去哪裡收信
-                document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
-            }
-        })
-        .catch(err => {
-            // 步驟 6: 處理後端回傳的錯誤回應
-            // .catch() 會捕捉到所有後端回傳的非 2xx 狀態碼的錯誤
-            // err.message 就是我們在後端 JSON 中定義的 message 內容
-            // 例如：「註冊碼無效」、「此帳號已被註冊」等
-            msgDiv.innerText = err.message;
-        });
-}
-    
-    // index.html 中的 login (最終版本)
-    // index.html 中的 login 函式 (最終完整版)
     function login() {
         const account = document.getElementById('loginAccount').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
@@ -429,35 +402,26 @@ function register() {
         callApi('login', { account, password })
             .then(res => {
                 if (res.success && res.token) {
-                    // 登入成功，儲存 Token 和使用者資料
                     localStorage.setItem('authToken', res.token);
                     currentUserProfile = res.profile;
 
-                    // 【核心修正】啟用 UI 更新
-                    updateQuotaDisplay(); 
-                    setQrCountOptions(); 
+                    updateQuotaDisplay();
+                    setQrCountOptions();
                     updateButtonLabels();
                     
-                    // 顯示主應用程式頁面
                     showMainAppPage();
                 } else {
-                    // 如果後端回傳成功但沒有 token，這是一種非預期狀況，同樣視為失敗
                     throw new Error('登入失敗，無法獲取授權。');
                 }
             })
             .catch(err => {
-                // 【錯誤處理邏輯 - 完整版】
-                // 檢查錯誤物件上是否有我們附加的 json 屬性
                 if (err.json && err.json.reason === 'unverified') {
-                    // 如果是「未驗證」的特定錯誤，就引導使用者去驗證
                     accountToVerify = account;
                     document.getElementById('loginBox').style.display = 'none';
                     document.getElementById('verifyBox').style.display = 'flex';
                     document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
-                    document.getElementById('loginMsg').innerText = ''; // 清除「登入中...」
+                    document.getElementById('loginMsg').innerText = '';
                 } else {
-                    // 如果是其他任何錯誤 (例如 401 密碼錯誤, 500 伺服器錯誤等)
-                    // 就顯示通用的錯誤訊息
                     document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
                 }
             });
@@ -491,8 +455,7 @@ function register() {
     }
 
     function handleGenerateClick() { 
-        // 為了讓 UI 能操作，暫時註解掉輸入驗證
-        // if (!validateInputs()) return;
+        if (!validateInputs()) return;
         
         showCustomAlert("正在後端計算條碼，請稍候...");
         
@@ -504,7 +467,7 @@ function register() {
             secondBarcode: document.getElementById("secondBarcode").value.trim().toUpperCase(),
             paymentDue: document.getElementById("paymentDue").value.trim(),
             paymentAmount: document.getElementById("paymentAmount").value.trim(),
-            qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1, // 確保有預設值
+            qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1,
             barcodeType: document.getElementById("barcodeType").value,
             incrementAmount: incrementAmount,
         };
@@ -530,7 +493,6 @@ function register() {
 
         if (!generatedBarcodeData || generatedBarcodeData.length === 0) return;
         
-        // 預覽最多只顯示 10 筆
         const displayLimit = 10;
         generatedBarcodeData.slice(0, displayLimit).forEach(data => {
             const wrapper = createBarcodeWrapper(data, false, false);
@@ -651,42 +613,62 @@ function register() {
       return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password);
     }
     
-    // ▼ 尚未遷移或待重新設計的函式 ▼
-    function clearPreviews() {}
-    // index.html 中的 forgotPassword 函式 (最終版)
-    function forgotPassword() { 
-        const account = document.getElementById('forgotAccount').value.trim(); // 帳號欄位可能不再需要，但我們先保留
-        const email = document.getElementById('forgotEmail').value.trim(); 
-        const msgDiv = document.getElementById('forgotMsg');
-        
-        if (!email) { 
-            msgDiv.innerText = '請輸入您註冊時使用的電子信箱';
+    function verifyCode() {
+        const code = document.getElementById('verifyCode').value.trim();
+        const msgDiv = document.getElementById('verifyMsg');
+        msgDiv.innerText = '';
+
+        if (!code || code.length !== 6) {
+            msgDiv.innerText = '請輸入 6 位數驗證碼。';
             return;
         }
-
-        msgDiv.innerText = '處理中...'; 
+        msgDiv.innerText = '驗證中...';
         
-        callApi('forgotPassword', { email: email })
+        callApi('verifyCode', { account: accountToVerify, code: code })
             .then(res => {
-                // 為了安全，無論成功或失敗，都顯示同一個通用訊息
-                msgDiv.innerText = '';
-                showCustomAlert(res.message);
+                if (res.success) {
+                    msgDiv.innerText = '';
+                    showCustomAlert('信箱驗證成功！\n現在您可以登入了。');
+                    showLogin();
+                }
             })
             .catch(err => {
-                // 即使發生網路錯誤，也顯示通用訊息
-                msgDiv.innerText = '';
-                showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封密碼重設郵件。');
+                if (err.message.includes('過期')) {
+                    msgDiv.innerText = '驗證碼已過期，請點擊下方的「重新寄送」按鈕獲取新碼。';
+                } else {
+                    msgDiv.innerText = err.message;
+                }
             });
     }
 
-    // index.html 中的 setQrCountOptions 函式 (最終版)
+    function resendCode() {
+        const msgDiv = document.getElementById('verifyMsg');
+        msgDiv.innerText = '正在重新寄送...';
+        
+        callApi('resendCode', { account: accountToVerify })
+            .then(res => {
+                if (res.success) {
+                    msgDiv.innerText = '';
+                    showCustomAlert('新的驗證碼已成功寄出，請檢查您的信箱。');
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = err.message;
+            });
+    }
+
+    function updateQuotaDisplay() {
+        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
+        document.getElementById('quotaDisplay').innerText = quota;
+    }
+
     function setQrCountOptions() {
         const select = document.getElementById('qrCount');
         const generateBtn = document.getElementById("generateBtn");
         select.innerHTML = "";
 
         const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
-        const max = Math.min(40, quota); // 最多可選 40 張，或剩餘額度
+        const max = Math.min(40, quota);
 
         if (max > 0) {
             for (let i = 1; i <= max; i++) { 
@@ -706,63 +688,20 @@ function register() {
             generateBtn.disabled = true;
         }
     }
-    function updateButtonLabels() { 
-        const count = parseInt(document.getElementById('qrCount').value, 10) || 1; 
-        document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
+    
+    // ▼ 尚未遷移或待重新設計的函式 ▼
+    function clearPreviews() {
+        document.getElementById('previewContainer').innerHTML = '';
+        document.getElementById('downloadAllBtn').style.display = 'none';
+        generatedBarcodeData = [];
     }
-    function validateInputs() { return true; }
-        // index.html 中的 updateQuotaDisplay 函式 (最終版)
-    function updateQuotaDisplay() {
-        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
-        document.getElementById('quotaDisplay').innerText = quota;
-    }
+    function forgotPassword() { showCustomAlert("忘記密碼功能正在升級中。"); }
     function onFirstBarcodeInput() {}
-    function onBankSelectChange() {}
-
-    // index.html 的 <script> 區塊中
-    function resendCode() {
-        const msgDiv = document.getElementById('verifyMsg');
-        msgDiv.innerText = '正在重新寄送...';
-        
-        callApi('resendCode', { account: accountToVerify })
-            .then(res => {
-                if (res.success) {
-                    msgDiv.innerText = '';
-                    showCustomAlert('新的驗證碼已成功寄出，請檢查您的信箱。');
-                }
-            })
-            .catch(err => {
-                msgDiv.innerText = err.message;
-            });
+    function onBankSelectChange() {
+        const isOther = document.getElementById('bankSelect').value === 'other';
+        document.getElementById('bankInput').style.display = isOther ? 'block' : 'none';
+        document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
-
-        // index.html 中的 verifyCode 函式 (最終版本)
-    function verifyCode() {
-        const code = document.getElementById('verifyCode').value.trim();
-        const msgDiv = document.getElementById('verifyMsg');
-        msgDiv.innerText = '';
-
-        if (!code || code.length !== 6) {
-            msgDiv.innerText = '請輸入 6 位數驗證碼。';
-            return;
-        }
-        msgDiv.innerText = '驗證中...';
-        
-        // 使用 callApi 呼叫後端 /api/verifyCode 進行驗證
-        // 我們將之前儲存的全域變數 accountToVerify 一起送出
-        callApi('verifyCode', { account: accountToVerify, code: code })
-                .then(res => { /* ... */ })
-                .catch(err => {
-                    // ▼▼▼ 【核心修改】 ▼▼▼
-                    if (err.message.includes('過期')) {
-                        msgDiv.innerText = '驗證碼已過期，請點擊下方的「重新寄送」按鈕獲取新碼。';
-                    } else {
-                        msgDiv.innerText = err.message;
-                    }
-                    // ▲▲▲ 【核心修改】 ▲▲▲
-                });
-        }
-
     function showProfile() { showCustomAlert("會員資料功能正在升級中。"); }
     function hideProfile() {}
     function saveProfile() {}
@@ -776,6 +715,21 @@ function register() {
     function hideUserAdminPanel() {}
     function loadUsersForAdmin() {}
     function saveUsersByAdmin() {}
+    function updateButtonLabels() { 
+        const count = parseInt(document.getElementById('qrCount').value, 10) || 1; 
+        document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
+    }
+    function validateInputs() { 
+        const first = document.getElementById('firstBarcode').value.trim(); 
+        const second = document.getElementById('secondBarcode').value.trim(); 
+        const paymentDue = document.getElementById("paymentDue").value.trim(); 
+        const amt = document.getElementById("paymentAmount").value.trim(); 
+        if (!first || !second || !paymentDue || !amt) {
+            showCustomAlert("所有條碼相關欄位皆為必填！");
+            return false;
+        }
+        return true;
+    }
     
     // ▼▼▼ 第二部分：事件綁定 ▼▼▼
     document.addEventListener('DOMContentLoaded', function() {
@@ -809,9 +763,8 @@ function register() {
             document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
         });
         
-        // --- 初始載入 ---
         loadBankSelect();
-        setQrCountOptions(); // 預先填充數量選項
+        setQrCountOptions();
         updateButtonLabels();
     });
   </script>
