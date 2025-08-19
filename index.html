@@ -590,57 +590,56 @@
         return wrapper;
     }
     
-// index.html 中的 startDownloadProcess 函式 (最終完整版)
+    // index.html 中的 startDownloadProcess 函式 (最終修正版)
 
-function startDownloadProcess() {
-    const qrCount = generatedBarcodeData.length;
-    if (qrCount === 0) {
-        return showCustomAlert("沒有可下載的項目。");
-    }
-    
-    // 步驟 1: 建立並顯示彈出式確認視窗的 HTML 內容
-    // 這段 HTML 包含了兩個 checkbox，ID 分別為 'includeTitleForDownload' 和 'includeReminderForDownload'
-    const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
-    const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
-    
-    document.getElementById('customAlertMsg').innerHTML = msg;
-    document.getElementById('customAlertButtons').innerHTML = buttons;
-    document.getElementById('customAlert').style.display = 'flex';
-    
-    // 步驟 2: 為彈出視窗中的「確定」按鈕綁定點擊事件
-    document.getElementById('confirmBtn').onclick = function() {
+    function startDownloadProcess() {
+        const qrCount = generatedBarcodeData.length;
+        if (qrCount === 0) {
+            return showCustomAlert("沒有可下載的項目。");
+        }
         
-        // ▼▼▼ 【核心修正】▼▼▼
-        // 在執行任何其他操作（特別是關閉視窗）之前，
-        // 立刻從當下還存在的 checkbox 元素中讀取它們的勾選狀態。
-        const includeTitle = document.getElementById('includeTitleForDownload').checked;
-        const includeReminder = document.getElementById('includeReminderForDownload').checked;
-        // ▲▲▲ 【核心修正】▲▲▲
+        // 步驟 1: 建立並顯示彈出式確認視窗的 HTML 內容
+        const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
+        const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
+        
+        document.getElementById('customAlertMsg').innerHTML = msg;
+        document.getElementById('customAlertButtons').innerHTML = buttons;
+        document.getElementById('customAlert').style.display = 'flex';
+        
+        // 步驟 2: 為彈出視窗中的「確定」按鈕綁定點擊事件
+        document.getElementById('confirmBtn').onclick = function() {
+            
+            // ▼▼▼ 【核心修正】▼▼▼
+            // 在執行任何其他操作（特別是關閉視窗）之前，
+            // 立刻從當下還存在的 checkbox 元素中讀取它們的勾選狀態並儲存起來。
+            const includeTitle = document.getElementById('includeTitleForDownload').checked;
+            const includeReminder = document.getElementById('includeReminderForDownload').checked;
+            // ▲▲▲ 【核心修正】▲▲▲
 
-        // 步驟 3: 關閉確認視窗，並顯示處理中的提示
-        closeCustomAlert();
-        showCustomAlert("正在與伺服器確認額度...");
+            // 步驟 3: 關閉確認視窗，並顯示處理中的提示
+            closeCustomAlert();
+            showCustomAlert("正在與伺服器確認額度...");
 
-        // 步驟 4: 呼叫後端 API 進行額度扣除
-        callApi('deductQuota', { countToDeduct: qrCount })
-            .then(res => {
-                // 步驟 5: 後端成功回傳，代表額度已扣除
-                if (res.success) {
-                    // 更新前端儲存的使用者資料，確保狀態同步
-                    currentUserProfile.current_quota = res.newQuota;
-                    
-                    // 步驟 6: 使用我們在【核心修正】步驟中預先儲存好的狀態，
-                    // 來執行真正的前端下載邏輯。
-                    executeDownload(includeTitle, includeReminder);
-                }
-            })
-            .catch(err => {
-                // 如果後端回傳任何錯誤 (例如額度不足、Token 過期等)，
-                // 就在這裡捕捉並顯示錯誤訊息
-                showCustomAlert('操作失敗：<br>' + err.message);
-            });
-    };
-}
+            // 步驟 4: 呼叫後端 API 進行額度扣除
+            callApi('deductQuota', { countToDeduct: qrCount })
+                .then(res => {
+                    // 步驟 5: 後端成功回傳，代表額度已扣除
+                    if (res.success) {
+                        // 更新前端儲存的使用者資料，確保狀態同步
+                        currentUserProfile.current_quota = res.newQuota;
+                        
+                        // 步驟 6: 使用我們在【核心修正】步驟中預先儲存好的狀態，
+                        // 來執行真正的前端下載邏輯。
+                        executeDownload(includeTitle, includeReminder);
+                    }
+                })
+                .catch(err => {
+                    // 如果後端回傳任何錯誤 (例如額度不足、Token 過期等)，
+                    // 就在這裡捕捉並顯示錯誤訊息
+                    showCustomAlert('操作失敗：<br>' + err.message);
+                });
+        };
+    }
 
     function executeDownload(includeTitle, includeReminder) {
         showCustomAlert("準備下載中，請稍候...");
