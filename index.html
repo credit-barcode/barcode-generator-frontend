@@ -920,9 +920,69 @@
     function addSerialRow() {}
     function deleteSerialRow() {}
     function saveSerialCodes() {}
-    function showUserAdminPanel() {}
+    // index.html 中的 showUserAdminPanel (修改版)
+    function showUserAdminPanel() {
+        showLogin(); // 先隱藏所有頁面
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('userAdminPanel').style.display = 'flex';
+        document.getElementById('userAdminMsg').innerText = '';
+        
+        // 呼叫新的資料載入函式
+        loadUsersForAdmin();
+    }
+
+    // index.html 中的 loadUsersForAdmin (全新版本)
+    function loadUsersForAdmin() {
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
+
+        // 我們需要發送一個 GET 請求，所以直接使用 fetch
+        // 同時，為了驗證權限，我們需要手動附加 Authorization 標頭
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        fetch('/api/admin/getUsers', {
+            method: 'GET',
+            headers: headers
+        })
+        .then(response => {
+            return response.json().then(json => {
+                if (!response.ok) throw new Error(json.message);
+                return json;
+            });
+        })
+        .then(users => {
+            tbody.innerHTML = '';
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const newRow = tbody.insertRow();
+                    // 為了未來方便更新，我們在每一行都加上 user.id 的 data 屬性
+                    newRow.dataset.userId = user.id;
+
+                    // 格式化日期顯示
+                    const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
+
+                    newRow.innerHTML = `
+                        <td>${user.account}</td>
+                        <td><input type="checkbox" ${user.qr_permission ? 'checked' : ''}></td>
+                        <td><input type="number" value="${user.current_quota}"></td>
+                        <td><input type="number" value="${user.reset_quota}"></td>
+                        <td>${registerDate}</td>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
+            }
+        })
+        .catch(err => {
+            tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
+        });
+    }
+
     function hideUserAdminPanel() {}
-    function loadUsersForAdmin() {}
     function saveUsersByAdmin() {}
     function updateButtonLabels() { 
         const count = parseInt(document.getElementById('qrCount').value, 10) || 1; 
