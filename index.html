@@ -456,6 +456,7 @@
             });
     }
     
+    // index.html 中的 login 函式 (管理員介面啟用版)
     function login() {
         const account = document.getElementById('loginAccount').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
@@ -474,10 +475,18 @@
                     updateQuotaDisplay();
                     setQrCountOptions();
                     updateButtonLabels();
+
+                    // ▼▼▼ 【核心新增】根據使用者角色顯示對應的按鈕 ▼▼▼
+                    if (currentUserProfile.isAdmin) {
+                        document.getElementById('adminBtn').style.display = 'inline-block';
+                        document.getElementById('userAdminBtn').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('adminBtn').style.display = 'none';
+                        document.getElementById('userAdminBtn').style.display = 'none';
+                    }
+                    // ▲▲▲ 【核心新增】 ▲▲▲
                     
                     showMainAppPage();
-                } else {
-                    throw new Error('登入失敗，無法獲取授權。');
                 }
             })
             .catch(err => {
