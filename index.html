@@ -931,23 +931,18 @@
         loadUsersForAdmin();
     }
 
-    // index.html 中的 loadUsersForAdmin (全新版本)
+    // index.html 中的 loadUsersForAdmin (修正版)
     function loadUsersForAdmin() {
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
 
-        // 我們需要發送一個 GET 請求，所以直接使用 fetch
-        // 同時，為了驗證權限，我們需要手動附加 Authorization 標頭
         const headers = { 'Content-Type': 'application/json' };
         const token = localStorage.getItem('authToken');
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        fetch('/api/admin/getUsers', {
-            method: 'GET',
-            headers: headers
-        })
+        fetch('/api/admin/getUsers', { method: 'GET', headers: headers })
         .then(response => {
             return response.json().then(json => {
                 if (!response.ok) throw new Error(json.message);
@@ -959,19 +954,18 @@
             if (users && users.length > 0) {
                 users.forEach(user => {
                     const newRow = tbody.insertRow();
-                    // 為了未來方便更新，我們在每一行都加上 user.id 的 data 屬性
                     newRow.dataset.userId = user.id;
-
-                    // 格式化日期顯示
                     const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
 
+                    // ▼▼▼ 【核心修正】將 user.qr_permission 改為 user.permission ▼▼▼
                     newRow.innerHTML = `
                         <td>${user.account}</td>
-                        <td><input type="checkbox" ${user.qr_permission ? 'checked' : ''}></td>
+                        <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
                         <td><input type="number" value="${user.current_quota}"></td>
                         <td><input type="number" value="${user.reset_quota}"></td>
                         <td>${registerDate}</td>
                     `;
+                    // ▲▲▲ 【核心修正】 ▲▲▲
                 });
             } else {
                 tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
@@ -984,40 +978,36 @@
 
     function hideUserAdminPanel() {}
     // index.html 中的 saveUsersByAdmin (全新版本)
+    // index.html 中的 saveUsersByAdmin (修正版)
     function saveUsersByAdmin() {
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
         
-        // 步驟 1: 遍歷表格中的每一行 (<tr>)，收集使用者修改後的資料
         const tableRows = document.querySelectorAll('#userTableBody tr');
         const usersData = Array.from(tableRows).map(row => {
-            // 從 data-user-id 屬性中讀取我們之前儲存的使用者 ID
             const userId = parseInt(row.dataset.userId, 10);
             
-            // 讀取各個 input 欄位的值
+            // 為了穩定性，我們為 input 加上 class 來選取
             const qrPermission = row.querySelector('input[type="checkbox"]').checked;
-            const currentQuota = parseInt(row.querySelector('input[type="number"][value]').value, 10); // 這裡需要更精確的選擇器
+            const currentQuota = parseInt(row.querySelectorAll('input[type="number"]')[0].value, 10);
             const resetQuota = parseInt(row.querySelectorAll('input[type="number"]')[1].value, 10);
 
-            // 組合成後端 API 需要的格式
+            // ▼▼▼ 【核心修正】將 qr_permission 改為 permission ▼▼▼
             return {
-                id: userId, // 【重要】必須包含 id，後端才能知道要更新哪一筆資料
-                qr_permission: qrPermission,
+                id: userId,
+                permission: qrPermission,
                 current_quota: currentQuota,
                 reset_quota: resetQuota
             };
+            // ▲▲▲ 【核心修正】 ▲▲▲
         });
 
-        // 步驟 2: 使用 callApi 呼叫新的後端端點
-        // 我們將整個使用者資料陣列作為 body 發送
         callApi('admin/updateUsers', usersData)
             .then(res => {
                 if (res.success) {
                     msgDiv.innerText = res.message;
-                    // 成功後，短暫顯示訊息，然後可以選擇重新載入資料或返回主頁
                     setTimeout(() => { 
                         msgDiv.innerText = '';
-                        // 重新載入列表以確認變更
                         loadUsersForAdmin(); 
                     }, 2000);
                 }
@@ -1026,10 +1016,6 @@
                 msgDiv.innerText = '儲存失敗: ' + err.message;
             });
     }
-        function updateButtonLabels() { 
-            const count = parseInt(document.getElementById('qrCount').value, 10) || 1; 
-            document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
-        }
 
     /**
      * 根據當前的表單輸入，產生一個獨一無二的請求 ID (requestKey)。
