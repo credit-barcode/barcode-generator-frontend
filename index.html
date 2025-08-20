@@ -158,7 +158,7 @@
           <button id="userAdminBtn" style="width: auto; padding: 8px 16px; background-color: #17a2b8; display: none; margin-right: 1rem;">使用者管理</button>
           <button id="adminBtn" style="width: auto; padding: 8px 16px; background-color: #ff9800; display: none; margin-right: 1rem;">管理註冊碼</button>
           <button id="showProfileBtn" style="width: auto; padding: 8px 16px; background-color: #007bff;">會員資料</button>
-      </div>
+          <button id="logoutBtn" style="width: auto; padding: 8px 16px; background-color: #6c757d;">登出</button>
       <div style="text-align: center; line-height: 1.8; border: 2px dashed red; padding: 10px; border-radius: 8px; margin-bottom: 1rem;">
           <p style="margin-bottom: 0.0em;">🚀 <strong>使用風險提醒</strong></p>
           <p style="margin: 0;">信用卡條碼產生器有可能會發生</p>
@@ -469,7 +469,23 @@
                 }
             });
     }
-    
+        
+        /**
+     * 處理使用者登出
+     */
+    function logout() {
+    // 步驟 1: 從瀏覽器的 localStorage 中移除儲存的 authToken
+    // 這是清除使用者登入狀態最關鍵的一步
+    localStorage.removeItem('authToken');
+
+    // 步驟 2: 清空儲存使用者資料的全域變數
+    currentUserProfile = null;
+
+    // 步驟 3: 將頁面導向回登入頁面
+    showLogin();
+    }
+
+
     function loadBankSelect() {
       fetch('/api/getBanks')
         .then(response => {
@@ -844,6 +860,7 @@
         document.getElementById('verifyBackToLoginBtn').addEventListener('click', showLogin);
         document.getElementById('showProfileBtn').addEventListener('click', showProfile);
         document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('cancelProfileBtn').addEventListener('click', hideProfile);
         document.getElementById('adminBtn').addEventListener('click', showAdminPanel);
         document.getElementById('cancelAdminBtn').addEventListener('click', hideAdminPanel);
