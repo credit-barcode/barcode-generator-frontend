@@ -987,43 +987,36 @@
 
     function hideUserAdminPanel() {}
     // index.html 中的 saveUsersByAdmin (全新版本)
-    // index.html 中的 saveUsersByAdmin 函式 (最終修正版)
-
+    // index.html 中的 saveUsersByAdmin (最終修正版)
     function saveUsersByAdmin() {
-        // 步驟 1: 獲取訊息顯示區塊，並更新 UI 提示
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
         
-        // 步驟 2: 獲取表格中的所有資料列 (<tr>)
         const tableRows = document.querySelectorAll('#userTableBody tr');
-        
-        // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
-            // 從每一行的 data-user-id 屬性中，讀取我們之前在 loadUsersForAdmin 中儲存的使用者 ID
             const userId = parseInt(row.dataset.userId, 10);
             
-            // 讀取各個 input 欄位目前的值
-            const permissionValue = row.querySelector('input[type="checkbox"]').checked;
-            const currentQuotaValue = parseInt(row.querySelectorAll('input[type="number"]')[0].value, 10);
-            const resetQuotaValue = parseInt(row.querySelectorAll('input[type="number"]')[1].value, 10);
+            // ▼▼▼ 【核心修正】讀取並包含 account 欄位 ▼▼▼
+            const accountValue = row.cells[0].innerText; // '帳號' 位於第一個儲存格 (index 0)
+            // ▲▲▲ 【核心修正】 ▲▲▲
+            
+            const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
+            const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
+            const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
 
-            // 步驟 4: 組合成一個物件，其 key (鍵) 必須與 Supabase users 表的欄位名稱完全一致
             return {
-                id: userId,                   // 【重要】必須包含 id，後端才能知道要更新哪一筆資料
-                permission: permissionValue,  // 【核心修正】這裡使用的是 'permission'，而不是 'qr_permission'
+                id: userId,
+                account: accountValue, // 將 account 一起打包
+                permission: permissionValue,
                 current_quota: currentQuotaValue,
                 reset_quota: resetQuotaValue
             };
         });
 
-        // 步驟 5: 使用 callApi 呼叫後端 /api/admin/updateUsers 端點
-        // 我們將整個使用者資料陣列作為 body 發送
         callApi('admin/updateUsers', usersData)
             .then(res => {
-                // 步驟 6: 處理後端回傳的成功回應
                 if (res.success) {
                     msgDiv.innerText = res.message;
-                    // 成功後，短暫顯示訊息，然後重新載入列表以確認變更
                     setTimeout(() => { 
                         msgDiv.innerText = '';
                         loadUsersForAdmin(); 
@@ -1031,7 +1024,6 @@
                 }
             })
             .catch(err => {
-                // 步驟 7: 處理後端回傳的錯誤回應
                 msgDiv.innerText = '儲存失敗: ' + err.message;
             });
     }
