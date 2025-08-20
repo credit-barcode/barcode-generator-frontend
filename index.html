@@ -865,11 +865,13 @@
         document.getElementById('profileBox').style.display = 'flex';
     }
 
+    // index.html 中的 saveProfile (體驗優化版)
     function saveProfile() {
         const currentPassword = document.getElementById('currentPassword').value;
         const newPassword = document.getElementById('profilePassword').value;
         const profileMsg = document.getElementById('profileMsg');
 
+        // 基礎驗證
         if (!currentPassword) {
             profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
             return;
@@ -878,6 +880,16 @@
             profileMsg.textContent = '新密碼格式不符合要求。';
             return;
         }
+        
+        // ▼▼▼ 【核心修正】▼▼▼
+        // 檢查是否有任何變更。如果使用者只輸入了舊密碼但沒輸入新密碼，就視為「無變更」。
+        if (!newPassword) {
+            profileMsg.textContent = '資料未變更。';
+            // 短暫提示後，自動返回主畫面
+            setTimeout(hideProfile, 1500);
+            return;
+        }
+        // ▲▲▲ 【核心修正】▲▲▲
         
         profileMsg.textContent = '儲存中...';
 
@@ -888,11 +900,6 @@
                     if (newPassword) {
                         showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
                         setTimeout(logout, 2000); 
-                    } else {
-                        setTimeout(() => {
-                            document.getElementById('profileBox').style.display = 'none';
-                            showMainAppPage();
-                        }, 1500);
                     }
                 }
             })
@@ -901,7 +908,12 @@
             });
     }
 
-    function hideProfile() {}
+        function hideProfile() {
+    // 移除所有檢查，直接執行關閉和跳轉
+    document.getElementById('profileBox').style.display = 'none';
+    showMainAppPage();
+    }
+    
     function showAdminPanel() {}
     function hideAdminPanel() {}
     function loadSerialCodes() {}
