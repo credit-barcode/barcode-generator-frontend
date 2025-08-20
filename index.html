@@ -892,38 +892,50 @@
         });
     }
 
+    // index.html 中的 saveUsersByAdmin (最終修正版)
     function saveUsersByAdmin() {
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
+        
         const tableRows = document.querySelectorAll('#userTableBody tr');
         const usersData = Array.from(tableRows).map(row => {
             const userId = parseInt(row.dataset.userId, 10);
-            const accountValue = row.cells[0].innerText;
+            
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
 
-            return { id: userId, account: accountValue, permission: permissionValue, current_quota: currentQuotaValue, reset_quota: resetQuotaValue };
+            // ▼▼▼ 【核心修正】不再需要傳送 account 欄位 ▼▼▼
+            return {
+                id: userId,
+                permission: permissionValue,
+                current_quota: currentQuotaValue,
+                reset_quota: resetQuotaValue
+            };
+            // ▲▲▲ 【核心修正】 ▲▲▲
         });
+
         callApi('admin/updateUsers', usersData)
             .then(res => {
                 if (res.success) {
                     msgDiv.innerText = res.message;
-                    setTimeout(() => { msgDiv.innerText = ''; loadUsersForAdmin(); }, 2000);
+                    setTimeout(() => { 
+                        msgDiv.innerText = '';
+                        loadUsersForAdmin(); 
+                    }, 2000);
                 }
             })
             .catch(err => {
                 msgDiv.innerText = '儲存失敗: ' + err.message;
             });
     }
-
-    function updateButtonLabels() { 
-        const countInput = document.getElementById('qrCount');
-        if (countInput) {
-            const count = parseInt(countInput.value, 10) || 1; 
-            document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
+        function updateButtonLabels() { 
+            const countInput = document.getElementById('qrCount');
+            if (countInput) {
+                const count = parseInt(countInput.value, 10) || 1; 
+                document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
+            }
         }
-    }
     
     function generateRequestKey() { 
         const dataToEncode = [

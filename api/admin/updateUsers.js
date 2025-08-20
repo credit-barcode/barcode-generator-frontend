@@ -1,4 +1,4 @@
-// 檔案路徑: /api/admin/updateUsers.js (最終修正版)
+// 檔案路徑: /api/admin/updateUsers.js (最終安全版)
 
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '../_lib.js';
@@ -18,20 +18,42 @@ export default async function handler(request, response) {
     }
     
     const usersDataToUpdate = request.body;
-    
     if (!Array.isArray(usersDataToUpdate) || usersDataToUpdate.length === 0) {
       return response.status(400).json({ message: '未提供有效的更新資料。' });
     }
 
-    const { data, error: updateError } = await supabase
-      .from('users')
-      // Supabase 的 .upsert() 會自動匹配物件中的 key 與資料表的欄位名稱
-      // 因為我們的前端 saveUsersByAdmin 已經修正為傳送 'permission'，所以這裡無需修改
-      .upsert(usersDataToUpdate, { onConflict: 'id' });
+    // ▼▼▼ 【核心修正】使用 Promise.all 搭配 .update() 進行精確更新 ▼▼▼
+    // 我們不再使用 .upsert()，而是為每一筆要更新的資料建立一個獨立的 update Promise
+    const updatePromises = usersDataToUpdate.map(user => {
+      // 從前端傳來的資料中，只取出我們要讓管理員修改的欄位
+      const { id, permission, current_quota, reset_quota } = user;
+      
+      // 確保 id 存在
+      if (!id) {
+        throw new Error('更新資料中缺少使用者 ID。');
+      }
+      
+      // 呼叫 .update() 方法，只更新指定的欄位
+      return supabase
+        .from('users')
+        .update({
+          permission: permission,
+          current_quota: current_quota,
+          reset_quota: reset_quota
+        })
+        .eq('id', id); // 根據 id 找到要更新的特定使用者
+    });
 
-    if (updateError) {
-      throw updateError;
-    }
+    // 等待所有的更新 Promise 都完成
+    const results = await Promise.all(updatePromises);
+    
+    // 檢查是否有任何一個更新操作失敗
+    results.forEach(result => {
+      if (result.error) {
+        throw result.error; // 如果有錯，就拋出來
+      }
+    });
+    // ▲▲▲ 【核心修正】 ▲▲▲
     
     return response.status(200).json({ success: true, message: '使用者資料儲存成功！' });
 
