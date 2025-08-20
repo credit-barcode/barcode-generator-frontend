@@ -139,18 +139,40 @@
   
   <div id="profileBox" style="display:none;">
     <h3>會員資料</h3>
-    <div class="form-group"><label>帳號</label><span id="profileAccount"></span></div>
     <div class="form-group">
-      <label for="profilePassword">新密碼 (不改請留空)</label>
+      <label>帳號</label>
+      <span id="profileAccount"></span>
+    </div>
+    <div class="form-group">
+      <label for="currentPassword">目前的密碼</label>
+      <input type="password" id="currentPassword" placeholder="請輸入目前的密碼以進行驗證" required>
+    </div>
+    <div class="form-group">
+      <label for="profilePassword">新密碼 (不修改請留空)</label>
       <input type="password" id="profilePassword" placeholder="請輸入新密碼">
       <small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small>
     </div>
-    <div class="form-group"><label for="profileEmail">註冊信箱</label><input type="email" id="profileEmail" placeholder="請輸入您的信箱"></div>
-    <div class="form-group"><label>剩餘下載額度</label><span id="profileQuota"></span></div>
-    <div class="form-group"><label>註冊日期</label><span id="profileRegisterDate"></span></div>
-    <div class="form-group"><label>最後修改日期</label><span id="profileLastModified"></span></div>
+    <div class="form-group">
+      <label for="profileEmail">註冊信箱 (暫不可修改)</label>
+      <input type="email" id="profileEmail" placeholder="請輸入您的信箱" disabled>
+    </div>
+    <div class="form-group">
+      <label>剩餘下載額度</label>
+      <span id="profileQuota"></span>
+    </div>
+    <div class="form-group">
+      <label>註冊日期</label>
+      <span id="profileRegisterDate"></span>
+    </div>
+    <div class="form-group">
+      <label>最後修改日期</label>
+      <span id="profileLastModified"></span>
+    </div>
     <div id="profileMsg"></div>
-    <div class="button-group"><button id="saveProfileBtn">儲存變更</button><button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button></div>
+    <div class="button-group">
+      <button id="saveProfileBtn">儲存變更</button>
+      <button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button>
+    </div>
   </div>
 
   <div id="mainApp">
@@ -784,7 +806,24 @@
         document.getElementById('downloadAllBtn').style.display = 'none';
         generatedBarcodeData = [];
     }
-    function forgotPassword() { showCustomAlert("忘記密碼功能正在升級中。"); }
+    function forgotPassword() { 
+    const email = document.getElementById('forgotEmail').value.trim(); 
+    const msgDiv = document.getElementById('forgotMsg');
+    if (!email) { 
+        msgDiv.innerText = '請輸入您註冊時使用的電子信箱';
+        return;
+    }
+    msgDiv.innerText = '處理中...'; 
+    callApi('forgotPassword', { email: email })
+        .then(res => {
+            msgDiv.innerText = '';
+            showCustomAlert(res.message);
+        })
+        .catch(err => {
+            msgDiv.innerText = '';
+            showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封提示郵件。');
+        });
+}
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {
         const isOther = document.getElementById('bankSelect').value === 'other';
@@ -792,55 +831,64 @@
         document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
     // index.html 中的 showProfile (最終版)
-    function showProfile() {
-        if (!currentUserProfile) {
-            showCustomAlert("無法獲取會員資料，請重新登入。");
-            return;
-        }
-        document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
-        document.getElementById('profileEmail').value = currentUserProfile.email || '';
-        document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
-        document.getElementById('profileRegisterDate').textContent = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString() : 'N/A';
-        document.getElementById('profileLastModified').textContent = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString() : '無修改紀錄';
-        
-        document.getElementById('profilePassword').value = '';
-        document.getElementById('currentPassword').value = ''; // 假設您已在 HTML 中新增了 id="currentPassword" 的欄位
-        document.getElementById('profileMsg').textContent = '';
-
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('profileBox').style.display = 'flex';
+function showProfile() {
+    if (!currentUserProfile) {
+        showCustomAlert("無法獲取會員資料，請重新登入。");
+        return;
     }
+    document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
+    document.getElementById('profileEmail').value = currentUserProfile.email || '';
+    document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
+    
+    const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
+    const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
+    document.getElementById('profileRegisterDate').textContent = registerDate;
+    document.getElementById('profileLastModified').textContent = lastModified;
+    
+    document.getElementById('profilePassword').value = '';
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('profileMsg').textContent = '';
 
-    // index.html 中的 saveProfile (最終版)
-    function saveProfile() {
-        const currentPassword = document.getElementById('currentPassword').value; // 假設的舊密碼欄位
-        const newPassword = document.getElementById('profilePassword').value;
-        const profileMsg = document.getElementById('profileMsg');
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('profileBox').style.display = 'flex';
+}
 
-        if (!currentPassword) {
-            profileMsg.textContent = '為了安全，請務必輸入您目前的密碼。';
-            return;
-        }
-        if (newPassword && !validatePassword(newPassword)) {
-            profileMsg.textContent = '新密碼格式不符合要求。';
-            return;
-        }
-        
-        profileMsg.textContent = '儲存中...';
+function saveProfile() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('profilePassword').value;
+    const profileMsg = document.getElementById('profileMsg');
 
-        callApi('updateProfile', { currentPassword, newPassword })
-            .then(res => {
-                if (res.success) {
-                    profileMsg.textContent = res.message;
-                    // 為了讓使用者用新密碼重新登入，我們可以選擇直接將其登出
-                    setTimeout(logout, 1500); 
+    if (!currentPassword) {
+        profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
+        return;
+    }
+    if (newPassword && !validatePassword(newPassword)) {
+        profileMsg.textContent = '新密碼格式不符合要求。';
+        return;
+    }
+    
+    profileMsg.textContent = '儲存中...';
+
+    callApi('updateProfile', { currentPassword, newPassword: newPassword || null })
+        .then(res => {
+            if (res.success) {
+                profileMsg.textContent = res.message;
+                if (newPassword) {
+                    showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
+                    setTimeout(logout, 2000); 
+                } else {
+                    setTimeout(() => {
+                        document.getElementById('profileBox').style.display = 'none';
+                        showMainAppPage();
+                    }, 1500);
                 }
-            })
-            .catch(err => {
-                profileMsg.textContent = '更新失敗：' + err.message;
-            });
-    }
+            }
+        })
+        .catch(err => {
+            profileMsg.textContent = '更新失敗：' + err.message;
+        });
+}
 
     function hideProfile() {}
     function showAdminPanel() {}
