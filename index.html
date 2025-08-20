@@ -778,6 +778,15 @@
             });
     }
 
+    // 在 <script> 區塊中，新增這個函式
+    function updateButtonLabels() { 
+        const countInput = document.getElementById('qrCount');
+        if (countInput) {
+            const count = parseInt(countInput.value, 10) || 1; 
+            document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
+        }
+    }
+
     function updateQuotaDisplay() {
         const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
         document.getElementById('quotaDisplay').innerText = quota;
@@ -978,34 +987,43 @@
 
     function hideUserAdminPanel() {}
     // index.html 中的 saveUsersByAdmin (全新版本)
-    // index.html 中的 saveUsersByAdmin (修正版)
+    // index.html 中的 saveUsersByAdmin 函式 (最終修正版)
+
     function saveUsersByAdmin() {
+        // 步驟 1: 獲取訊息顯示區塊，並更新 UI 提示
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
         
+        // 步驟 2: 獲取表格中的所有資料列 (<tr>)
         const tableRows = document.querySelectorAll('#userTableBody tr');
+        
+        // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
+            // 從每一行的 data-user-id 屬性中，讀取我們之前在 loadUsersForAdmin 中儲存的使用者 ID
             const userId = parseInt(row.dataset.userId, 10);
             
-            // 為了穩定性，我們為 input 加上 class 來選取
-            const qrPermission = row.querySelector('input[type="checkbox"]').checked;
-            const currentQuota = parseInt(row.querySelectorAll('input[type="number"]')[0].value, 10);
-            const resetQuota = parseInt(row.querySelectorAll('input[type="number"]')[1].value, 10);
+            // 讀取各個 input 欄位目前的值
+            const permissionValue = row.querySelector('input[type="checkbox"]').checked;
+            const currentQuotaValue = parseInt(row.querySelectorAll('input[type="number"]')[0].value, 10);
+            const resetQuotaValue = parseInt(row.querySelectorAll('input[type="number"]')[1].value, 10);
 
-            // ▼▼▼ 【核心修正】將 qr_permission 改為 permission ▼▼▼
+            // 步驟 4: 組合成一個物件，其 key (鍵) 必須與 Supabase users 表的欄位名稱完全一致
             return {
-                id: userId,
-                permission: qrPermission,
-                current_quota: currentQuota,
-                reset_quota: resetQuota
+                id: userId,                   // 【重要】必須包含 id，後端才能知道要更新哪一筆資料
+                permission: permissionValue,  // 【核心修正】這裡使用的是 'permission'，而不是 'qr_permission'
+                current_quota: currentQuotaValue,
+                reset_quota: resetQuotaValue
             };
-            // ▲▲▲ 【核心修正】 ▲▲▲
         });
 
+        // 步驟 5: 使用 callApi 呼叫後端 /api/admin/updateUsers 端點
+        // 我們將整個使用者資料陣列作為 body 發送
         callApi('admin/updateUsers', usersData)
             .then(res => {
+                // 步驟 6: 處理後端回傳的成功回應
                 if (res.success) {
                     msgDiv.innerText = res.message;
+                    // 成功後，短暫顯示訊息，然後重新載入列表以確認變更
                     setTimeout(() => { 
                         msgDiv.innerText = '';
                         loadUsersForAdmin(); 
@@ -1013,10 +1031,10 @@
                 }
             })
             .catch(err => {
+                // 步驟 7: 處理後端回傳的錯誤回應
                 msgDiv.innerText = '儲存失敗: ' + err.message;
             });
     }
-
     /**
      * 根據當前的表單輸入，產生一個獨一無二的請求 ID (requestKey)。
      * 只要表單內容不變，產生的 ID 就會一樣。

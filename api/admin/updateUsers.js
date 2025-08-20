@@ -1,4 +1,4 @@
-// 檔案路徑: /api/admin/updateUsers.js (修正版)
+// 檔案路徑: /api/admin/updateUsers.js (最終修正版)
 
 import { createClient } from '@supabase/supabase-js';
 import { verifyAdmin } from '../_lib.js';
@@ -23,12 +23,11 @@ export default async function handler(request, response) {
       return response.status(400).json({ message: '未提供有效的更新資料。' });
     }
 
-    // ▼▼▼ 【核心修正】這裡不需要修改，因為前端會傳來正確的 key ▼▼▼
-    // Supabase 的 .upsert() 會自動根據傳入的物件 key (例如 'permission') 去更新對應的欄位
     const { data, error: updateError } = await supabase
       .from('users')
+      // Supabase 的 .upsert() 會自動匹配物件中的 key 與資料表的欄位名稱
+      // 因為我們的前端 saveUsersByAdmin 已經修正為傳送 'permission'，所以這裡無需修改
       .upsert(usersDataToUpdate, { onConflict: 'id' });
-    // ▲▲▲ 【核心修正】 ▲▲▲
 
     if (updateError) {
       throw updateError;
