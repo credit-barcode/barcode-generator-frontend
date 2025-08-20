@@ -806,6 +806,7 @@
         document.getElementById('downloadAllBtn').style.display = 'none';
         generatedBarcodeData = [];
     }
+
     function forgotPassword() { 
     const email = document.getElementById('forgotEmail').value.trim(); 
     const msgDiv = document.getElementById('forgotMsg');
@@ -823,7 +824,8 @@
             msgDiv.innerText = '';
             showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封提示郵件。');
         });
-}
+    }
+
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {
         const isOther = document.getElementById('bankSelect').value === 'other';
@@ -831,64 +833,64 @@
         document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
     // index.html 中的 showProfile (最終版)
-function showProfile() {
-    if (!currentUserProfile) {
-        showCustomAlert("無法獲取會員資料，請重新登入。");
-        return;
+    function showProfile() {
+        if (!currentUserProfile) {
+            showCustomAlert("無法獲取會員資料，請重新登入。");
+            return;
+        }
+        document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
+        document.getElementById('profileEmail').value = currentUserProfile.email || '';
+        document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
+        
+        const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
+        const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
+        document.getElementById('profileRegisterDate').textContent = registerDate;
+        document.getElementById('profileLastModified').textContent = lastModified;
+        
+        document.getElementById('profilePassword').value = '';
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('profileMsg').textContent = '';
+
+        showLogin();
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('profileBox').style.display = 'flex';
     }
-    document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
-    document.getElementById('profileEmail').value = currentUserProfile.email || '';
-    document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
-    
-    const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
-    const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
-    document.getElementById('profileRegisterDate').textContent = registerDate;
-    document.getElementById('profileLastModified').textContent = lastModified;
-    
-    document.getElementById('profilePassword').value = '';
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('profileMsg').textContent = '';
 
-    showLogin();
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('profileBox').style.display = 'flex';
-}
+    function saveProfile() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('profilePassword').value;
+        const profileMsg = document.getElementById('profileMsg');
 
-function saveProfile() {
-    const currentPassword = document.getElementById('currentPassword').value;
-    const newPassword = document.getElementById('profilePassword').value;
-    const profileMsg = document.getElementById('profileMsg');
+        if (!currentPassword) {
+            profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
+            return;
+        }
+        if (newPassword && !validatePassword(newPassword)) {
+            profileMsg.textContent = '新密碼格式不符合要求。';
+            return;
+        }
+        
+        profileMsg.textContent = '儲存中...';
 
-    if (!currentPassword) {
-        profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
-        return;
-    }
-    if (newPassword && !validatePassword(newPassword)) {
-        profileMsg.textContent = '新密碼格式不符合要求。';
-        return;
-    }
-    
-    profileMsg.textContent = '儲存中...';
-
-    callApi('updateProfile', { currentPassword, newPassword: newPassword || null })
-        .then(res => {
-            if (res.success) {
-                profileMsg.textContent = res.message;
-                if (newPassword) {
-                    showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
-                    setTimeout(logout, 2000); 
-                } else {
-                    setTimeout(() => {
-                        document.getElementById('profileBox').style.display = 'none';
-                        showMainAppPage();
-                    }, 1500);
+        callApi('updateProfile', { currentPassword, newPassword: newPassword || null })
+            .then(res => {
+                if (res.success) {
+                    profileMsg.textContent = res.message;
+                    if (newPassword) {
+                        showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
+                        setTimeout(logout, 2000); 
+                    } else {
+                        setTimeout(() => {
+                            document.getElementById('profileBox').style.display = 'none';
+                            showMainAppPage();
+                        }, 1500);
+                    }
                 }
-            }
-        })
-        .catch(err => {
-            profileMsg.textContent = '更新失敗：' + err.message;
-        });
-}
+            })
+            .catch(err => {
+                profileMsg.textContent = '更新失敗：' + err.message;
+            });
+    }
 
     function hideProfile() {}
     function showAdminPanel() {}
