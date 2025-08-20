@@ -513,6 +513,7 @@
         });
     }
 
+    // index.html 中的 handleGenerateClick (最終修正版)
     function handleGenerateClick() { 
         if (!validateInputs()) return;
         
@@ -529,17 +530,20 @@
             qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1,
             barcodeType: document.getElementById("barcodeType").value,
             incrementAmount: incrementAmount,
-            // ▼▼▼ 【核心新增】產生並附加 requestKey ▼▼▼
             requestKey: generateRequestKey()
         };
 
         callApi('generateBarcodes', params)
             .then(backendResult => {
                 closeCustomAlert();
-                // ▼▼▼ 【核心修正】儲存後端回傳的條碼資料和 requestKey ▼▼▼
+                
+                // ▼▼▼ 【核心修正】▼▼▼
+                // 從回傳的物件中，只取出 barcodes 陣列賦值給 generatedBarcodeData
                 generatedBarcodeData = backendResult.barcodes;
-                currentBatchRequestKey = backendResult.requestKey; // 將 requestKey 存到全域變數中
-                // ▲▲▲ 【核心修正】 ▲▲▲
+                // 將 requestKey 存到它自己的變數中
+                currentBatchRequestKey = backendResult.requestKey;
+                // ▲▲▲ 【核心修正】▲▲▲
+                
                 generatePreviewUI();
                 showPreviewPage();
             })
@@ -836,7 +840,7 @@
                 profileMsg.textContent = '更新失敗：' + err.message;
             });
     }
-    
+
     function hideProfile() {}
     function showAdminPanel() {}
     function hideAdminPanel() {}
