@@ -852,10 +852,54 @@
         document.getElementById('userAdminMsg').innerText = '';
         loadUsersForAdmin();
     }
-
+    // index.html 中的 hideUserAdminPanel (最終修正版)
     function hideUserAdminPanel() {
+        // 步驟 1: 先將管理頁面隱藏
         document.getElementById('userAdminPanel').style.display = 'none';
-        showMainAppPage();
+        
+        // 步驟 2: 顯示一個提示，告知使用者正在更新資料
+        showCustomAlert('正在更新您的最新資訊...');
+
+        // 步驟 3: 呼叫新的 /api/getProfile API 來獲取最新的使用者資料
+        // 因為這是 GET 請求，我們直接使用 fetch
+        const headers = {};
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        fetch('/api/getProfile', {
+            method: 'GET',
+            headers: headers
+        })
+        .then(response => {
+            if (!response.ok) {
+                // 如果請求失敗，也要處理錯誤
+                return response.json().then(err => { throw new Error(err.message) });
+            }
+            return response.json();
+        })
+        .then(latestProfile => {
+            // 步驟 4: 成功獲取到最新的 profile
+            closeCustomAlert(); // 關閉提示
+
+            // 用最新的資料【覆蓋】掉舊的全域變數
+            currentUserProfile = latestProfile;
+            
+            // 【重要】用最新的資料，手動更新一次主頁面的所有相關 UI
+            updateQuotaDisplay();
+            setQrCountOptions();
+            updateButtonLabels();
+            
+            // 最後才顯示主頁面
+            showMainAppPage();
+        })
+        .catch(err => {
+            console.error("重新獲取個人資料失敗:", err);
+            closeCustomAlert();
+            // 即使獲取失敗，也先返回主頁，但可能會顯示舊的額度
+            showMainAppPage();
+        });
     }
     
     function loadUsersForAdmin() {
