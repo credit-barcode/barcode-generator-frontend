@@ -589,18 +589,25 @@
     }
 
     function loadSerialCodes() {
-    const tbody = document.getElementById('serialTableBody');
-    tbody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
-    callApi('admin', 'getSerials')
-    .then(serials => {
-    tbody.innerHTML = '';
-    if (serials && serials.length > 0) {
-    serials.forEach(serial => addSerialRow(serial.serial_code, serial.total_limit, serial.used_count));
-    }
-    })
-    .catch(err => {
-    tbody.innerHTML = `<tr style="color:red;"><td colspan="4">載入失敗: ${err.message}</td></tr>`;
-    });
+        const tbody = document.getElementById('serialTableBody');
+        tbody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+        const headers = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+
+        // ▼▼▼ 【核心修正】將路徑改回指向獨立的 getSerials 檔案 ▼▼▼
+        fetch('/api/admin/getSerials', { method: 'GET', headers: headers })
+            .then(response => {
+                if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
+                return response.json();
+            })
+            .then(serials => {
+                tbody.innerHTML = '';
+                if (serials && serials.length > 0) {
+                    serials.forEach(serial => addSerialRow(serial.serial_code, serial.total_limit, serial.used_count));
+                }
+            })
+            .catch(err => {
+                tbody.innerHTML = `<tr style="color:red;"><td colspan="4">載入失敗: ${err.message}</td></tr>`;
+            });
     }
 
     function addSerialRow(serial = '', total = '', used = '') {
@@ -614,28 +621,40 @@
     }
 
     function saveSerialCodes() {
-    const msgDiv = document.getElementById('adminMsg');
-    msgDiv.innerText = '儲存中...';
-    const tableRows = document.querySelectorAll('#serialTableBody tr');
-    const serialsData = Array.from(tableRows).map(row => {
-    const serialCode = row.querySelector('.serial-input').value.trim();
-    const totalLimit = parseInt(row.querySelector('.total-input').value, 10);
-    const usedCount = parseInt(row.querySelector('.used-input').value, 10);
-    if (serialCode && !isNaN(totalLimit)) {
-    return { serial_code: serialCode, total_limit: totalLimit, used_count: usedCount || 0 };
-    }
-    return null;
-    }).filter(Boolean);
-    callApi('admin', 'updateSerials', serialsData)
-    .then(res => {
-    if (res.success) {
-    msgDiv.innerText = res.message;
-    setTimeout(() => { msgDiv.innerText = ''; loadSerialCodes(); }, 2000);
-    }
-    })
-    .catch(err => {
-    msgDiv.innerText = '儲存失敗: ' + err.message;
-    });
+        const msgDiv = document.getElementById('adminMsg');
+        msgDiv.innerText = '儲存中...';
+        const tableRows = document.querySelectorAll('#serialTableBody tr');
+        const serialsData = Array.from(tableRows).map(row => {
+            const serialCode = row.querySelector('.serial-input').value.trim();
+            const totalLimit = parseInt(row.querySelector('.total-input').value, 10);
+            const usedCount = parseInt(row.querySelector('.used-input').value, 10);
+            if (serialCode && !isNaN(totalLimit)) {
+                return { serial_code: serialCode, total_limit: totalLimit, used_count: usedCount || 0 };
+            }
+            return null;
+        }).filter(Boolean);
+
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+
+        // ▼▼▼ 【核心修正】將路徑改回指向獨立的 updateSerials 檔案 ▼▼▼
+        fetch('/api/admin/updateSerials', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(serialsData)
+        })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
+            return response.json();
+        })
+        .then(res => {
+            if (res.success) {
+                msgDiv.innerText = res.message;
+                setTimeout(() => { msgDiv.innerText = ''; loadSerialCodes(); }, 2000);
+            }
+        })
+        .catch(err => {
+            msgDiv.innerText = '儲存失敗: ' + err.message;
+        });
     }
 
     function showUserAdminPanel() {
