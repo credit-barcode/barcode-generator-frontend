@@ -889,7 +889,7 @@ function saveSerialCodes() {
         document.getElementById('bankSelect').addEventListener('change', onBankSelectChange);
         document.getElementById('qrCount').addEventListener('change', updateButtonLabels);
         document.getElementById('amountIncrementType').addEventListener('change', function() {
-            document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
+        document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
         });
         
         loadBankSelect();
