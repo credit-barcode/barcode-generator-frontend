@@ -103,33 +103,25 @@
      * @param {object} [data={}] - 要發送的 JSON 資料 (可選)
      * @returns {Promise<any>}
      */
-    function callApi(endpoint, action, data = {}) {
-      // 步驟 1: 準備請求標頭，並自動附加 JWT Token
-      const headers = { 'Content-Type': 'application/json' };
-      const token = localStorage.getItem('authToken');
-      if (token) {
+    // index.html 中的 callApi (最終統一版)
+    /** @typedef {Error & {json?: object}} ApiError */
+    function callApi(endpoint, data, method = 'POST') { // 預設方法為 POST
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-      }
+    }
+    
+    const fetchOptions = {
+        method: method,
+        headers: headers
+    };
+    
+    if (method === 'POST') {
+        fetchOptions.body = JSON.stringify(data);
+    }
 
-      // 步驟 2: 根據 action 是否存在，來決定 request body 的結構
-      // 如果 action 存在，body 結構為 { action: "...", ...data }
-      // 如果 action 為 null，body 結構直接就是 data 物件本身
-      const body = (action) ? JSON.stringify({ action: action, ...data }) : JSON.stringify(data);
-
-      // 特別處理：管理員獲取使用者列表是 GET 請求
-      if (endpoint === 'admin' && action === 'getUsers') {
-          return fetch(`/api/admin`, {
-              method: 'GET',
-              headers: headers
-          }).then(handleResponse);
-      }
-
-      // 處理所有 POST 請求
-      return fetch(`/api/${endpoint}`, {
-        method: 'POST',
-        headers: headers,
-        body: body
-      }).then(handleResponse);
+    return fetch(`/api/${endpoint}`, fetchOptions).then(handleResponse);
     }
     
     /**
@@ -781,33 +773,54 @@ function saveSerialCodes() {
     }
 
     // index.html 中的 saveUsersByAdmin (最終修正版)
+    // index.html 中的 saveUsersByAdmin (最終完整版)
+
     function saveUsersByAdmin() {
+        // 步驟 1: 獲取訊息顯示區塊，並更新 UI 提示為「儲存中...」
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
         
+        // 步驟 2: 獲取表格主體 (tbody) 中的所有資料列 (tr)
         const tableRows = document.querySelectorAll('#userTableBody tr');
+        
+        // 步驟 3: 使用 Array.from() 和 .map() 遍歷每一行，將其轉換為後端需要的資料物件格式
         const usersData = Array.from(tableRows).map(row => {
+            // 從每一行的 data-user-id 屬性中，讀取我們之前在 loadUsersForAdmin 中儲存的使用者 ID
             const userId = parseInt(row.dataset.userId, 10);
+            
+            // 從第一個儲存格 (<td>) 中，讀取帳號文字
             const accountValue = row.cells[0].innerText;
-      
+        
+            // 從第二個儲存格中，找到 checkbox 並讀取其勾選狀態 (true/false)
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
+            
+            // 從第三個儲存格中，找到數字輸入框並讀取其值
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
+            
+            // 從第四個儲存格中，找到數字輸入框並讀取其值
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
 
+            // 步驟 4: 組合成一個物件。這個物件的 key (鍵) 必須與 Supabase users 表的欄位名稱，
+            // 以及後端 API 期望接收的欄位名稱完全一致。
             return {
-                id: userId,
-                account: accountValue,
-                permission: permissionValue,
+                id: userId,                   // 【重要】必須包含 id，後端才能知道要更新哪一筆資料
+                account: accountValue,        // 【重要】包含 account，避免 'not-null' 錯誤
+                permission: permissionValue,  // 對應 'permission' 欄位
                 current_quota: currentQuotaValue,
                 reset_quota: resetQuotaValue
             };
         });
 
-        // ▼▼▼ 【核心修正】呼叫時，將 action 設為 null 或 undefined ▼▼▼
-        callApi('admin', null, usersData)
+        // 步驟 5: 呼叫後端 /api/admin/updateUsers 端點
+        // 我們將整個使用者資料陣列 (usersData) 作為 body 發送
+        callApi('admin/updateUsers', usersData)
             .then(res => {
+                // 步驟 6: 處理後端回傳的成功回應
                 if (res.success) {
+                    // 在畫面上顯示成功訊息
                     msgDiv.innerText = res.message;
+                    
+                    // 為了讓使用者看到最新的狀態，在短暫顯示成功訊息後，自動重新載入使用者列表
                     setTimeout(() => { 
                         msgDiv.innerText = '';
                         loadUsersForAdmin(); 
@@ -815,6 +828,8 @@ function saveSerialCodes() {
                 }
             })
             .catch(err => {
+                // 步驟 7: 處理後端回傳的錯誤回應
+                // 將後端提供的錯誤訊息，直接顯示在畫面上
                 msgDiv.innerText = '儲存失敗: ' + err.message;
             });
     }
