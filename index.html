@@ -92,27 +92,20 @@
     let generatedBarcodeData = [];
     let currentBatchRequestKey = null;
 
-    /** @typedef {Error & {json?: object}} ApiError */
+/** @typedef {Error & {json?: object}} ApiError */
     function callApi(endpoint, action, data = {}) {
       const headers = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem('authToken');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+      
+      const body = (action) ? JSON.stringify({ action: action, ...data }) : JSON.stringify(data);
 
-      // 處理管理員 GET 請求
-      if (endpoint === 'admin' && action === 'getUsers') {
-          return fetch(`/api/admin`, {
-              method: 'GET',
-              headers: headers
-          }).then(handleResponse);
-      }
-
-      // 處理所有 POST 請求
       return fetch(`/api/${endpoint}`, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ action: action, ...data })
+        body: body
       }).then(handleResponse);
     }
     
@@ -646,31 +639,36 @@
         });
     }
 
+    // index.html 中的 saveUsersByAdmin (最終修正版)
     function saveUsersByAdmin() {
         const msgDiv = document.getElementById('userAdminMsg');
         msgDiv.innerText = '儲存中...';
+        
         const tableRows = document.querySelectorAll('#userTableBody tr');
         const usersData = Array.from(tableRows).map(row => {
             const userId = parseInt(row.dataset.userId, 10);
             const accountValue = row.cells[0].innerText;
+      
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
-            return { id: userId, account: accountValue, permission: permissionValue, current_quota: currentQuotaValue, reset_quota: resetQuotaValue };
+
+            return {
+                id: userId,
+                account: accountValue,
+                permission: permissionValue,
+                current_quota: currentQuotaValue,
+                reset_quota: resetQuotaValue
+            };
         });
+
+        // ▼▼▼ 【核心修正】呼叫時，將 action 設為 null 或 undefined ▼▼▼
         callApi('admin', null, usersData)
             .then(res => {
                 if (res.success) {
                     msgDiv.innerText = res.message;
                     setTimeout(() => { 
                         msgDiv.innerText = '';
-                        // 手動更新當前登入使用者的 profile (如果有被修改)
-                        if (currentUserProfile) {
-                            const updatedProfile = usersData.find(user => user.account === currentUserProfile.account);
-                            if (updatedProfile) {
-                                currentUserProfile.current_quota = updatedProfile.current_quota;
-                            }
-                        }
                         loadUsersForAdmin(); 
                     }, 2000);
                 }
