@@ -92,16 +92,39 @@
     let generatedBarcodeData = [];
     let currentBatchRequestKey = null;
 
-/** @typedef {Error & {json?: object}} ApiError */
+    // index.html 的 <script> 區塊中
+
+    /** @typedef {Error & {json?: object}} ApiError */
+    
+    /**
+     * 【核心重構】向 Vercel 後端 API 發送請求的統一函式
+     * @param {string} endpoint - API 的路徑名稱 (例如 'auth', 'admin')
+     * @param {string | null} action - 要執行的具體操作 (例如 'login', 'register')。如果請求的 body 直接就是資料，則傳入 null。
+     * @param {object} [data={}] - 要發送的 JSON 資料 (可選)
+     * @returns {Promise<any>}
+     */
     function callApi(endpoint, action, data = {}) {
+      // 步驟 1: 準備請求標頭，並自動附加 JWT Token
       const headers = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem('authToken');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
+      // 步驟 2: 根據 action 是否存在，來決定 request body 的結構
+      // 如果 action 存在，body 結構為 { action: "...", ...data }
+      // 如果 action 為 null，body 結構直接就是 data 物件本身
       const body = (action) ? JSON.stringify({ action: action, ...data }) : JSON.stringify(data);
 
+      // 特別處理：管理員獲取使用者列表是 GET 請求
+      if (endpoint === 'admin' && action === 'getUsers') {
+          return fetch(`/api/admin`, {
+              method: 'GET',
+              headers: headers
+          }).then(handleResponse);
+      }
+
+      // 處理所有 POST 請求
       return fetch(`/api/${endpoint}`, {
         method: 'POST',
         headers: headers,
@@ -109,20 +132,38 @@
       }).then(handleResponse);
     }
     
+    /**
+     * 共用的 fetch 回應處理函式，用來解析 JSON 並進行統一的錯誤處理
+     * @param {Response} response - 來自 fetch 的原始回應物件
+     * @returns {Promise<any>}
+     */
     function handleResponse(response) {
+        // response.json() 會讀取回應主體並解析為 JavaScript 物件
         return response.json().then(json => {
+            // 檢查 HTTP 狀態碼是否為成功 (例如 200 OK)
             if (!response.ok) {
+                // 如果請求失敗，建立一個自訂的 Error 物件
                 const error = /** @type {ApiError} */ (new Error(json.message || `伺服器回傳 ${response.status}`));
+                
+                // 將後端回傳的完整 JSON 物件附加到 error 上，方便 .catch 區塊取得更多資訊
                 error.json = json;
+                
+                // 【安全機制】如果是授權相關的錯誤 (401 或 403)
                 if (response.status === 401 || response.status === 403) {
+                    // 只有在使用者目前不是處於登入頁面時，才彈出提示並導向
+                    // 這樣可以避免在登入頁面輸入錯誤密碼時，也彈出「登入過期」的奇怪提示
                     if(document.getElementById('loginBox').style.display !== 'flex') {
-                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('authToken'); // 清除無效的 Token
                         showCustomAlert('您的登入狀態已過期或無效，請重新登入。');
-                        setTimeout(showLogin, 1500);
+                        setTimeout(showLogin, 1500); // 延遲 1.5 秒後跳轉到登入頁
                     }
                 }
+                
+                // 拋出這個帶有額外資訊的錯誤，讓呼叫端的 .catch() 可以捕捉到它
                 throw error;
             }
+            
+            // 如果請求成功，直接回傳解析後的 JSON 資料
             return json;
         });
     }
