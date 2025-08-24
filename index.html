@@ -610,16 +610,6 @@
             });
     }
 
-    function addSerialRow(serial = '', total = '', used = '') {
-    const tbody = document.getElementById('serialTableBody');
-    const newRow = tbody.insertRow();
-    newRow.innerHTML = `<td><input type="text" class="serial-input" value="${serial}"></td><td><input type="number" class="total-input" value="${total}"></td><td><input type="number" class="used-input" value="${used}" disabled></td><td><button class="delete-row-btn">刪除</button></td>`;
-    }
-
-    function deleteSerialRow(btn) {
-    btn.closest('tr').remove();
-    }
-
     function saveSerialCodes() {
         const msgDiv = document.getElementById('adminMsg');
         msgDiv.innerText = '儲存中...';
@@ -655,6 +645,16 @@
         .catch(err => {
             msgDiv.innerText = '儲存失敗: ' + err.message;
         });
+    }
+
+    function addSerialRow(serial = '', total = '', used = '') {
+    const tbody = document.getElementById('serialTableBody');
+    const newRow = tbody.insertRow();
+    newRow.innerHTML = `<td><input type="text" class="serial-input" value="${serial}"></td><td><input type="number" class="total-input" value="${total}"></td><td><input type="number" class="used-input" value="${used}" disabled></td><td><button class="delete-row-btn">刪除</button></td>`;
+    }
+
+    function deleteSerialRow(btn) {
+    btn.closest('tr').remove();
     }
 
     function showUserAdminPanel() {
