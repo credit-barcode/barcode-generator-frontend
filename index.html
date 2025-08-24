@@ -608,7 +608,107 @@
             .catch(err => { profileMsg.textContent = '更新失敗：' + err.message; });
     }
 
-    function showAdminPanel() { /* 待實現 */ }
+    // index.html 中的函式 (最終版)
+
+function showAdminPanel() {
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'flex';
+    document.getElementById('adminMsg').innerText = '';
+    loadSerialCodes(); // 啟用載入函式
+}
+
+function hideAdminPanel() {
+    document.getElementById('adminPanel').style.display = 'none';
+    showMainAppPage();
+}
+
+function loadSerialCodes() {
+    const tbody = document.getElementById('serialTableBody');
+    tbody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+    
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch('/api/admin/serials', { method: 'GET', headers: headers })
+        .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
+        .then(serials => {
+            tbody.innerHTML = '';
+            if (serials && serials.length > 0) {
+                serials.forEach(serial => addSerialRow(serial.serial_code, serial.total_limit, serial.used_count));
+            }
+        })
+        .catch(err => {
+            tbody.innerHTML = `<tr style="color:red;"><td colspan="4">載入失敗: ${err.message}</td></tr>`;
+        });
+}
+
+function addSerialRow(serial = '', total = '', used = '') {
+    const tbody = document.getElementById('serialTableBody');
+    const newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="serial-input" value="${serial}"></td>
+        <td><input type="number" class="total-input" value="${total}"></td>
+        <td><input type="number" class="used-input" value="${used}" disabled></td> <!-- 已使用次數設為不可編輯 -->
+        <td><button class="delete-row-btn">刪除</button></td>
+    `;
+}
+
+function deleteSerialRow(btn) {
+    btn.closest('tr').remove();
+}
+
+function saveSerialCodes() {
+    const msgDiv = document.getElementById('adminMsg');
+    msgDiv.innerText = '儲存中...';
+
+    const tableRows = document.querySelectorAll('#serialTableBody tr');
+    const serialsData = Array.from(tableRows).map(row => {
+        const serialCode = row.querySelector('.serial-input').value.trim();
+        const totalLimit = parseInt(row.querySelector('.total-input').value, 10);
+        const usedCount = parseInt(row.querySelector('.used-input').value, 10);
+
+        // 只儲存有填寫註冊碼的行
+        if (serialCode && !isNaN(totalLimit)) {
+            return {
+                serial_code: serialCode,
+                total_limit: totalLimit,
+                used_count: usedCount || 0
+            };
+        }
+        return null;
+    }).filter(Boolean); // 過濾掉為 null 的項目
+
+    // 使用 POST 方法呼叫新的統一端點
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch('/api/admin/serials', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(serialsData)
+    })
+    .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
+    .then(res => {
+        if (res.success) {
+            msgDiv.innerText = res.message;
+            setTimeout(() => { 
+                msgDiv.innerText = '';
+                loadSerialCodes();
+            }, 2000);
+        }
+    })
+    .catch(err => {
+        msgDiv.innerText = '儲存失敗: ' + err.message;
+    });
+}
+
     function hideAdminPanel() { showMainAppPage(); }
     function loadSerialCodes() { /* 待實現 */ }
     function addSerialRow() {}
