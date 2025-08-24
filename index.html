@@ -67,209 +67,16 @@
 </head>
 <body>
 
-  <div id="loginBox">
-    <h3>請先登入</h3>
-    <div class="form-group">
-      <input id="loginAccount" type="text" placeholder="帳號" />
-    </div>
-    <div class="form-group">
-        <input type="password" id="loginPassword" placeholder="密碼" />
-    </div>
-    <button id="loginBtn">登入</button>
-    <button type="button" id="showRegisterBtn" style="background-color:#6c757d;">註冊</button>
-    <button type="button" id="showForgotBtn" style="background-color:#ffc107;color:#212529;">忘記密碼</button>
-    <div id="loginMsg"></div>
-  </div>
-
-  <div id="registerBox" style="display:none;">
-    <h3>註冊新帳號</h3>
-    <div class="form-group">
-      <input id="registerAccount" type="text" placeholder="帳號" />
-    </div>
-    <div class="form-group">
-      <input type="password" id="registerPassword" placeholder="請輸入密碼" />
-      <small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small>
-    </div>
-    <div class="form-group">
-      <input id="registerEmail" type="email" placeholder="信箱" />
-    </div>
-    <div class="form-group">
-      <input id="registerSerial" type="text" placeholder="註冊碼" />
-    </div>
-    <button id="registerBtn">確定註冊</button>
-    <button id="registerBackToLoginBtn" style="background-color:#6c757d;">返回登入</button>
-    <div id="registerMsg"></div>
-  </div>
-
-  <div id="verifyBox" style="display:none;">
-    <h3>請驗證您的信箱</h3>
-    <p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p>
-    <div class="form-group">
-      <input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" />
-    </div>
-    <button id="verifyBtn">驗證</button>
-    <button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button>
-    <button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button>
-    <div id="verifyMsg"></div>
-  </div>
-
-  <div id="legacyVerifyBox" style="display:none;">
-    <h3>系統更新 - 請驗證信箱</h3>
-    <p style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;">為提升帳戶安全，我們需要您完成信箱驗證。請確認或修改您的信箱，我們將發送一組驗證碼給您。</p>
-    <div class="form-group">
-      <input id="legacyEmail" type="email" placeholder="請確認或輸入新信箱" />
-    </div>
-    <button id="legacySendBtn">發送驗證碼</button>
-    <button id="legacyLaterBtn" style="background-color:#6c757d;">稍後再說</button>
-    <div id="legacyVerifyMsg"></div>
-  </div>
-
-  <div id="forgotBox" style="display:none;">
-    <h3>忘記密碼</h3>
-    <div class="form-group" style="margin-bottom:8px;">
-      <input id="forgotAccount" type="text" placeholder="帳號" />
-    </div>
-    <div class="form-group">
-      <input id="forgotEmail" type="email" placeholder="註冊信箱" />
-    </div>
-    <button id="forgotSendBtn">寄送密碼提示</button>
-    <button id="forgotBackBtn" style="background-color:#6c757d;">返回</button>
-    <div id="forgotMsg"></div>
-  </div>
-  
-  <div id="profileBox" style="display:none;">
-    <h3>會員資料</h3>
-    <div class="form-group">
-      <label>帳號</label>
-      <span id="profileAccount"></span>
-    </div>
-    <div class="form-group">
-      <label for="currentPassword">目前的密碼</label>
-      <input type="password" id="currentPassword" placeholder="請輸入您目前的密碼以進行驗證" required>
-    </div>
-    <div class="form-group">
-      <label for="profilePassword">新密碼 (不修改請留空)</label>
-      <input type="password" id="profilePassword" placeholder="請輸入新密碼">
-      <small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small>
-    </div>
-    <div class="form-group">
-      <label for="profileEmail">註冊信箱 (暫不可修改)</label>
-      <input type="email" id="profileEmail" placeholder="請輸入您的信箱" disabled>
-    </div>
-    <div class="form-group">
-      <label>剩餘下載額度</label>
-      <span id="profileQuota"></span>
-    </div>
-    <div class="form-group">
-      <label>註冊日期</label>
-      <span id="profileRegisterDate"></span>
-    </div>
-    <div class="form-group">
-      <label>最後修改日期</label>
-      <span id="profileLastModified"></span>
-    </div>
-    <div id="profileMsg"></div>
-    <div class="button-group">
-      <button id="saveProfileBtn">儲存變更</button>
-      <button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button>
-    </div>
-  </div>
-
-  <div id="mainApp">
-    <div style="text-align: right; width: 100%; max-width: 800px; margin: 0 auto 1rem auto;">
-      <button id="userAdminBtn" style="width: auto; padding: 8px 16px; background-color: #17a2b8; display: none; margin-right: 1rem;">使用者管理</button>
-      <button id="adminBtn" style="width: auto; padding: 8px 16px; background-color: #ff9800; display: none; margin-right: 1rem;">管理註冊碼</button>
-      <button id="showProfileBtn" style="width: auto; padding: 8px 16px; background-color: #007bff; margin-right: 1rem;">會員資料</button>
-      <button id="logoutBtn" style="width: auto; padding: 8px 16px; background-color: #6c757d;">登出</button>
-    </div>
-    <div style="text-align: center; line-height: 1.8; border: 2px dashed red; padding: 10px; border-radius: 8px; margin-bottom: 1rem;">
-      <p style="margin-bottom: 0.0em;">🚀 <strong>使用風險提醒</strong></p>
-      <p style="margin: 0;">信用卡條碼產生器有可能會發生</p>
-      <p style="margin: 0;">條碼掃得過但實際沒入帳</p>
-      <p style="margin: 0;">付款紀錄「飛到外太空」不見了的情況</p>
-      <p style="margin: 0;">請務必確認條碼內容正確無誤</p>
-      <p style="margin-top: 0.0em;">⚠️風險需由您自行承擔!請小心使用</p>
-    </div>
-    <div style="font-size:0.95em;color:#555;margin-bottom:16px;">
-      註解1. LINE內建瀏覽器，會導致部分功能無法操作。<br>
-      註解2. 前4碼「年+月」有國泰、富邦、聯邦<br>
-      註解3. 前4碼「月+日」有玉山、台新、台銀
-    </div>
-    <h2>條碼產生器</h2>
-    <form id="barcodeForm">
-      <label>第三段條碼前4碼</label>
-      <select id="barcodeType">
-        <option value="YYMM">年+月</option>
-        <option value="MMDD">月+日</option>
-      </select>
-      <select id="bankSelect">
-        <option value="">請選擇銀行</option>
-        <option value="other">其他（請自行輸入）</option>
-      </select>
-      <label id="bankLabel" style="display:none;">請輸入銀行名稱</label>
-      <input type="text" id="bankInput" placeholder="請輸入銀行名稱" style="display:none;" />
-      <label>第一段條碼 (9碼)</label>
-      <input type="text" id="firstBarcode" maxlength="9" pattern="[A-Za-z0-9]{9}" title="請輸入 9 位英文或數字" required class="uppercase-input" />
-      <span id="bankName" style="color:blue;font-weight:bold;"></span>
-      <label>第二段條碼 (16碼) <span style="margin-left:8px;color: blue;">(銷帳編號)</span></label>
-      <input type="text" id="secondBarcode" maxlength="16" pattern="[A-Za-z0-9]{16}" title="請輸入 16 位英文或數字" required class="uppercase-input" placeholder="請謹慎確認" />
-      <label>繳費期限 (YYYMMDD)</label>
-      <input type="text" id="paymentDue" maxlength="7" pattern="^[0-9]{7}$" title="請輸入正確格式（YYYMMDD）" required />
-      <label>繳費金額</label>
-      <input type="text" id="paymentAmount" pattern="^[0-9]+$" title="請輸入數字金額" required />
-      <label>金額遞增</label>
-      <select id="amountIncrementType">
-        <option value="0">無 (金額固定)</option>
-        <option value="1">連續 +1 元</option>
-        <option value="5">連續 +5 元</option>
-        <option value="10">連續 +10 元</option>
-        <option value="custom">自訂</option>
-      </select>
-      <input type="number" id="customIncrementAmount" placeholder="請輸入自訂遞增金額" style="display:none;" />
-      <label>條碼數量 (剩餘 <span id="quotaDisplay">0</span> 張)</label>
-      <select id="qrCount"></select>
-      <button type="submit" id="generateBtn">條碼產生器</button>
-    </form>
-  </div>
-  
-  <div id="previewPage">
-    <h2>繳費條碼</h2>
-    <div class="preview-actions">
-      <div class="download-button-container">
-        <button id="downloadAllBtn">全部下載條碼</button>
-      </div>
-      <button id="backToGeneratorBtn">返回產生器</button>
-    </div>
-    <div class="preview-container" id="previewContainer"></div>
-  </div>
-
-  <div id="adminPanel">
-    <h3>註冊碼管理</h3>
-    <table id="serialTable">
-      <thead><tr><th>序號</th><th>總次數</th><th>已用次數</th><th>操作</th></tr></thead>
-      <tbody id="serialTableBody"></tbody>
-    </table>
-    <div class="admin-button-group">
-      <button id="addRowBtn">新增一列</button>
-      <button id="saveSerialsBtn">儲存變更</button>
-      <button id="cancelAdminBtn" style="background-color: #6c757d;">返回主畫面</button>
-    </div>
-    <div id="adminMsg" style="color: red; margin-top: 1rem; text-align: center;"></div>
-  </div>
-  
-  <div id="userAdminPanel">
-    <h3>使用者管理</h3>
-    <table id="userTable">
-      <thead><tr><th>帳號</th><th>QR權限</th><th>目前可用次數</th><th>每月重設額度</th><th>註冊日期</th></tr></thead>
-      <tbody id="userTableBody"></tbody>
-    </table>
-    <div class="admin-button-group">
-      <button id="saveUsersBtn">儲存變更</button>
-      <button id="cancelUserAdminBtn" style="background-color: #6c757d;">返回主畫面</button>
-    </div>
-    <div id="userAdminMsg" style="color: red; margin-top: 1rem; text-align: center;"></div>
-  </div>
-
+  <div id="loginBox"><h3>請先登入</h3><div class="form-group"><input id="loginAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input type="password" id="loginPassword" placeholder="密碼" /></div><button id="loginBtn">登入</button><button type="button" id="showRegisterBtn" style="background-color:#6c757d;">註冊</button><button type="button" id="showForgotBtn" style="background-color:#ffc107;color:#212529;">忘記密碼</button><div id="loginMsg"></div></div>
+  <div id="registerBox" style="display:none;"><h3>註冊新帳號</h3><div class="form-group"><input id="registerAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input type="password" id="registerPassword" placeholder="請輸入密碼" /><small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small></div><div class="form-group"><input id="registerEmail" type="email" placeholder="信箱" /></div><div class="form-group"><input id="registerSerial" type="text" placeholder="註冊碼" /></div><button id="registerBtn">確定註冊</button><button id="registerBackToLoginBtn" style="background-color:#6c757d;">返回登入</button><div id="registerMsg"></div></div>
+  <div id="verifyBox" style="display:none;"><h3>請驗證您的信箱</h3><p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p><div class="form-group"><input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" /></div><button id="verifyBtn">驗證</button><button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button><button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button><div id="verifyMsg"></div></div>
+  <div id="legacyVerifyBox" style="display:none;"><h3>系統更新 - 請驗證信箱</h3><p style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;">為提升帳戶安全，我們需要您完成信箱驗證。請確認或修改您的信箱，我們將發送一組驗證碼給您。</p><div class="form-group"><input id="legacyEmail" type="email" placeholder="請確認或輸入新信箱" /></div><button id="legacySendBtn">發送驗證碼</button><button id="legacyLaterBtn" style="background-color:#6c757d;">稍後再說</button><div id="legacyVerifyMsg"></div></div>
+  <div id="forgotBox" style="display:none;"><h3>忘記密碼</h3><div class="form-group" style="margin-bottom:8px;"><input id="forgotAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input id="forgotEmail" type="email" placeholder="註冊信箱" /></div><button id="forgotSendBtn">寄送密碼提示</button><button id="forgotBackBtn" style="background-color:#6c757d;">返回</button><div id="forgotMsg"></div></div>
+  <div id="profileBox" style="display:none;"><h3>會員資料</h3><div class="form-group"><label>帳號</label><span id="profileAccount"></span></div><div class="form-group"><label for="currentPassword">目前的密碼</label><input type="password" id="currentPassword" placeholder="請輸入您目前的密碼以進行驗證" required></div><div class="form-group"><label for="profilePassword">新密碼 (不修改請留空)</label><input type="password" id="profilePassword" placeholder="請輸入新密碼"><small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small></div><div class="form-group"><label for="profileEmail">註冊信箱 (暫不可修改)</label><input type="email" id="profileEmail" placeholder="請輸入您的信箱" disabled></div><div class="form-group"><label>剩餘下載額度</label><span id="profileQuota"></span></div><div class="form-group"><label>註冊日期</label><span id="profileRegisterDate"></span></div><div class="form-group"><label>最後修改日期</label><span id="profileLastModified"></span></div><div id="profileMsg"></div><div class="button-group"><button id="saveProfileBtn">儲存變更</button><button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button></div></div>
+  <div id="mainApp"><div style="text-align: right; width: 100%; max-width: 800px; margin: 0 auto 1rem auto;"><button id="userAdminBtn" style="width: auto; padding: 8px 16px; background-color: #17a2b8; display: none; margin-right: 1rem;">使用者管理</button><button id="adminBtn" style="width: auto; padding: 8px 16px; background-color: #ff9800; display: none; margin-right: 1rem;">管理註冊碼</button><button id="showProfileBtn" style="width: auto; padding: 8px 16px; background-color: #007bff; margin-right: 1rem;">會員資料</button><button id="logoutBtn" style="width: auto; padding: 8px 16px; background-color: #6c757d;">登出</button></div><div style="text-align: center; line-height: 1.8; border: 2px dashed red; padding: 10px; border-radius: 8px; margin-bottom: 1rem;"><p style="margin-bottom: 0.0em;">🚀 <strong>使用風險提醒</strong></p><p style="margin: 0;">信用卡條碼產生器有可能會發生</p><p style="margin: 0;">條碼掃得過但實際沒入帳</p><p style="margin: 0;">付款紀錄「飛到外太空」不見了的情況</p><p style="margin: 0;">請務必確認條碼內容正確無誤</p><p style="margin-top: 0.0em;">⚠️風險需由您自行承擔!請小心使用</p></div><div style="font-size:0.95em;color:#555;margin-bottom:16px;">註解1. LINE內建瀏覽器，會導致部分功能無法操作。<br>註解2. 前4碼「年+月」有國泰、富邦、聯邦<br>註解3. 前4碼「月+日」有玉山、台新、台銀</div><h2>條碼產生器</h2><form id="barcodeForm"><label>第三段條碼前4碼</label><select id="barcodeType"><option value="YYMM">年+月</option><option value="MMDD">月+日</option></select><select id="bankSelect"><option value="">請選擇銀行</option><option value="other">其他（請自行輸入）</option></select><label id="bankLabel" style="display:none;">請輸入銀行名稱</label><input type="text" id="bankInput" placeholder="請輸入銀行名稱" style="display:none;" /><label>第一段條碼 (9碼)</label><input type="text" id="firstBarcode" maxlength="9" pattern="[A-Za-z0-9]{9}" title="請輸入 9 位英文或數字" required class="uppercase-input" /><span id="bankName" style="color:blue;font-weight:bold;"></span><label>第二段條碼 (16碼) <span style="margin-left:8px;color: blue;">(銷帳編號)</span></label><input type="text" id="secondBarcode" maxlength="16" pattern="[A-Za-z0-9]{16}" title="請輸入 16 位英文或數字" required class="uppercase-input" placeholder="請謹慎確認" /><label>繳費期限 (YYYMMDD)</label><input type="text" id="paymentDue" maxlength="7" pattern="^[0-9]{7}$" title="請輸入正確格式（YYYMMDD）" required /><label>繳費金額</label><input type="text" id="paymentAmount" pattern="^[0-9]+$" title="請輸入數字金額" required /><label>金額遞增</label><select id="amountIncrementType"><option value="0">無 (金額固定)</option><option value="1">連續 +1 元</option><option value="5">連續 +5 元</option><option value="10">連續 +10 元</option><option value="custom">自訂</option></select><input type="number" id="customIncrementAmount" placeholder="請輸入自訂遞增金額" style="display:none;" /><label>條碼數量 (剩餘 <span id="quotaDisplay">0</span> 張)</label><select id="qrCount"></select><button type="submit" id="generateBtn">條碼產生器</button></form></div>
+  <div id="previewPage"><div class="preview-actions"><div class="download-button-container"><button id="downloadAllBtn">全部下載條碼</button></div><button id="backToGeneratorBtn">返回產生器</button></div><div class="preview-container" id="previewContainer"></div></div>
+  <div id="adminPanel"><h3>註冊碼管理</h3><table id="serialTable"><thead><tr><th>序號</th><th>總次數</th><th>已用次數</th><th>操作</th></tr></thead><tbody id="serialTableBody"></tbody></table><div class="admin-button-group"><button id="addRowBtn">新增一列</button><button id="saveSerialsBtn">儲存變更</button><button id="cancelAdminBtn" style="background-color: #6c757d;">返回主畫面</button></div><div id="adminMsg" style="color: red; margin-top: 1rem; text-align: center;"></div></div>
+  <div id="userAdminPanel"><h3>使用者管理</h3><table id="userTable"><thead><tr><th>帳號</th><th>QR權限</th><th>目前可用次數</th><th>每月重設額度</th><th>註冊日期</th></tr></thead><tbody id="userTableBody"></tbody></table><div class="admin-button-group"><button id="saveUsersBtn">儲存變更</button><button id="cancelUserAdminBtn" style="background-color: #6c757d;">返回主畫面</button></div><div id="userAdminMsg" style="color: red; margin-top: 1rem; text-align: center;"></div></div>
   <div id="customAlert"><div id="customAlertBox"><div id="customAlertMsg"></div><div id="customAlertButtons"></div></div></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -277,7 +84,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-    <script>
+  <script>
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
     // ▼ 全域變數 ▼
@@ -304,8 +111,10 @@
             error.json = json;
             if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('authToken');
-                showCustomAlert('您的登入狀態已過期或無效，請重新登入。');
-                setTimeout(showLogin, 1500);
+                if(document.getElementById('loginBox').style.display !== 'flex') {
+                    showCustomAlert('您的登入狀態已過期或無效，請重新登入。');
+                    setTimeout(showLogin, 1500);
+                }
             }
             throw error;
           }
@@ -427,8 +236,6 @@
                         document.getElementById('userAdminBtn').style.display = 'none';
                     }
                     showMainAppPage();
-                } else {
-                    throw new Error('登入失敗，無法獲取授權。');
                 }
             })
             .catch(err => {
@@ -852,144 +659,105 @@
         document.getElementById('userAdminMsg').innerText = '';
         loadUsersForAdmin();
     }
-    // index.html 中的 hideUserAdminPanel (最終修正版)
+
     function hideUserAdminPanel() {
         document.getElementById('userAdminPanel').style.display = 'none';
+        
         showCustomAlert('正在更新您的最新資訊...');
-
         const headers = {};
         const token = localStorage.getItem('authToken');
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-
-        // 直接使用 fetch 發送 GET 請求
-        fetch('/api/getProfile', {
-            method: 'GET',
-            headers: headers
-        })
+        fetch('/api/getProfile', { method: 'GET', headers: headers })
         .then(response => {
-            // 先檢查 response 是否成功，再解析 json
             if (!response.ok) {
-                // 如果請求失敗，先解析錯誤訊息再拋出
-                return response.json().then(errBody => {
-                    throw new Error(errBody.message || `伺服器回傳 ${response.status}`);
-                });
+                return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
             }
             return response.json();
         })
         .then(latestProfile => {
             closeCustomAlert();
             currentUserProfile = latestProfile;
-            
             updateQuotaDisplay();
             setQrCountOptions();
             updateButtonLabels();
-            
             showMainAppPage();
         })
         .catch(err => {
             console.error("重新獲取個人資料失敗:", err);
             closeCustomAlert();
-            // 即使獲取失敗，也先返回主頁，但會顯示舊的額度
-            // 並彈出一個提示告知使用者
             showCustomAlert("無法同步最新資料，顯示的可能為舊額度。");
             showMainAppPage();
         });
     }
     
-// index.html 中的 loadUsersForAdmin (重構版)
-function loadUsersForAdmin() {
-    const tbody = document.getElementById('userTableBody');
-    tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
-
-    const headers = { 'Content-Type': 'application/json' };
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // ▼▼▼ 【核心修正】將請求路徑從 /api/admin/getUsers 改為 /api/admin ▼▼▼
-    fetch('/api/admin', {
-        method: 'GET', // 維持 GET 方法
-        headers: headers
-    })
-    .then(response => {
-        return response.json().then(json => {
-            if (!response.ok) throw new Error(json.message);
-            return json;
-        });
-    })
-    .then(users => {
-        tbody.innerHTML = '';
-        if (users && users.length > 0) {
-            users.forEach(user => {
-                const newRow = tbody.insertRow();
-                newRow.dataset.userId = user.id;
-                const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
-
-                newRow.innerHTML = `
-                    <td>${user.account}</td>
-                    <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
-                    <td><input type="number" value="${user.current_quota}"></td>
-                    <td><input type="number" value="${user.reset_quota}"></td>
-                    <td>${registerDate}</td>
-                `;
-            });
-        } else {
-            tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
+    function loadUsersForAdmin() {
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
-    })
-    .catch(err => {
-        tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
-    });
-}
-
-// index.html 中的 saveUsersByAdmin (重構版)
-function saveUsersByAdmin() {
-    const msgDiv = document.getElementById('userAdminMsg');
-    msgDiv.innerText = '儲存中...';
-    
-    const tableRows = document.querySelectorAll('#userTableBody tr');
-    const usersData = Array.from(tableRows).map(row => {
-        const userId = parseInt(row.dataset.userId, 10);
-        const accountValue = row.cells[0].innerText;
-        const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
-        const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
-        const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
-
-        return {
-            id: userId,
-            account: accountValue,
-            permission: permissionValue,
-            current_quota: currentQuotaValue,
-            reset_quota: resetQuotaValue
-        };
-    });
-
-    // ▼▼▼ 【核心修正】將 callApi 的端點從 'admin/updateUsers' 改為 'admin' ▼▼▼
-    // callApi 預設會使用 POST 方法，這正好對應到我們後端的邏輯
-    callApi('admin', usersData)
-        .then(res => {
-            if (res.success) {
-                msgDiv.innerText = res.message;
-                setTimeout(() => { 
-                    msgDiv.innerText = '';
-                    loadUsersForAdmin(); 
-                }, 2000);
+        fetch('/api/admin/getUsers', { method: 'GET', headers: headers })
+        .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
+        .then(users => {
+            tbody.innerHTML = '';
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const newRow = tbody.insertRow();
+                    newRow.dataset.userId = user.id;
+                    const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
+                    newRow.innerHTML = `
+                        <td>${user.account}</td>
+                        <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
+                        <td><input type="number" value="${user.current_quota}"></td>
+                        <td><input type="number" value="${user.reset_quota}"></td>
+                        <td>${registerDate}</td>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
             }
         })
         .catch(err => {
-            msgDiv.innerText = '儲存失敗: ' + err.message;
+            tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
         });
-}
-        function updateButtonLabels() { 
-            const countInput = document.getElementById('qrCount');
-            if (countInput) {
-                const count = parseInt(countInput.value, 10) || 1; 
-                document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
-            }
+    }
+
+    function saveUsersByAdmin() {
+        const msgDiv = document.getElementById('userAdminMsg');
+        msgDiv.innerText = '儲存中...';
+        const tableRows = document.querySelectorAll('#userTableBody tr');
+        const usersData = Array.from(tableRows).map(row => {
+            const userId = parseInt(row.dataset.userId, 10);
+            const accountValue = row.cells[0].innerText;
+            const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
+            const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
+            const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
+
+            return { id: userId, account: accountValue, permission: permissionValue, current_quota: currentQuotaValue, reset_quota: resetQuotaValue };
+        });
+        callApi('admin/updateUsers', usersData)
+            .then(res => {
+                if (res.success) {
+                    msgDiv.innerText = res.message;
+                    setTimeout(() => { msgDiv.innerText = ''; loadUsersForAdmin(); }, 2000);
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = '儲存失敗: ' + err.message;
+            });
+    }
+
+    function updateButtonLabels() { 
+        const countInput = document.getElementById('qrCount');
+        if (countInput && countInput.value) {
+            const count = parseInt(countInput.value, 10) || 1; 
+            document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
         }
+    }
     
     function generateRequestKey() { 
         const dataToEncode = [
