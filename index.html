@@ -83,6 +83,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <script>
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
@@ -92,825 +93,725 @@
     let generatedBarcodeData = [];
     let currentBatchRequestKey = null;
 
-    // index.html 的 <script> 區塊中
-
     /** @typedef {Error & {json?: object}} ApiError */
-    
-    /**
-     * 【核心重構】向 Vercel 後端 API 發送請求的統一函式
-     * @param {string} endpoint - API 的路徑名稱 (例如 'auth', 'admin')
-     * @param {string | null} action - 要執行的具體操作 (例如 'login', 'register')。如果請求的 body 直接就是資料，則傳入 null。
-     * @param {object} [data={}] - 要發送的 JSON 資料 (可選)
-     * @returns {Promise<any>}
-     */
-    // index.html 中的 callApi (最終統一版)
-    /** @typedef {Error & {json?: object}} ApiError */
-    function callApi(endpoint, data, method = 'POST') { // 預設方法為 POST
+    function callApi(endpoint, action, data = {}) {
     const headers = { 'Content-Type': 'application/json' };
     const token = localStorage.getItem('authToken');
     if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    const fetchOptions = {
-        method: method,
-        headers: headers
-    };
-    
-    if (method === 'POST') {
-        fetchOptions.body = JSON.stringify(data);
+    headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return fetch(`/api/${endpoint}`, fetchOptions).then(handleResponse);
+    if (endpoint === 'admin' && (action === 'getUsers' || action === 'getSerials')) {
+    return fetch(`/api/admin/${action.replace('get', '').toLowerCase()}`, {
+    method: 'GET',
+    headers: headers
+    }).then(handleResponse);
     }
-    
-    /**
-     * 共用的 fetch 回應處理函式，用來解析 JSON 並進行統一的錯誤處理
-     * @param {Response} response - 來自 fetch 的原始回應物件
-     * @returns {Promise<any>}
-     */
+
+    const body = (action) ? JSON.stringify({ action: action, ...data }) : JSON.stringify(data);
+
+    return fetch(`/api/${endpoint}`, {
+    method: 'POST',
+    headers: headers,
+    body: body
+    }).then(handleResponse);
+    }
+
     function handleResponse(response) {
-        // response.json() 會讀取回應主體並解析為 JavaScript 物件
-        return response.json().then(json => {
-            // 檢查 HTTP 狀態碼是否為成功 (例如 200 OK)
-            if (!response.ok) {
-                // 如果請求失敗，建立一個自訂的 Error 物件
-                const error = /** @type {ApiError} */ (new Error(json.message || `伺服器回傳 ${response.status}`));
-                
-                // 將後端回傳的完整 JSON 物件附加到 error 上，方便 .catch 區塊取得更多資訊
-                error.json = json;
-                
-                // 【安全機制】如果是授權相關的錯誤 (401 或 403)
-                if (response.status === 401 || response.status === 403) {
-                    // 只有在使用者目前不是處於登入頁面時，才彈出提示並導向
-                    // 這樣可以避免在登入頁面輸入錯誤密碼時，也彈出「登入過期」的奇怪提示
-                    if(document.getElementById('loginBox').style.display !== 'flex') {
-                        localStorage.removeItem('authToken'); // 清除無效的 Token
-                        showCustomAlert('您的登入狀態已過期或無效，請重新登入。');
-                        setTimeout(showLogin, 1500); // 延遲 1.5 秒後跳轉到登入頁
-                    }
-                }
-                
-                // 拋出這個帶有額外資訊的錯誤，讓呼叫端的 .catch() 可以捕捉到它
-                throw error;
-            }
-            
-            // 如果請求成功，直接回傳解析後的 JSON 資料
-            return json;
-        });
+    return response.json().then(json => {
+    if (!response.ok) {
+    const error = /** @type {ApiError} */ (new Error(json.message || `伺服器回傳 ${response.status}`));
+    error.json = json;
+    if (response.status === 401 || response.status === 403) {
+    if(document.getElementById('loginBox').style.display !== 'flex') {
+    localStorage.removeItem('authToken');
+    showCustomAlert('您的登入狀態已過期或無效，請重新登入。');
+    setTimeout(showLogin, 1500);
+    }
+    }
+    throw error;
+    }
+    return json;
+    });
     }
 
     // ▼ UI 顯示/隱藏控制函式 ▼
     function showLogin() {
-        document.getElementById('profileBox').style.display = 'none';
-        document.getElementById('registerBox').style.display = 'none';
-        document.getElementById('forgotBox').style.display = 'none';
-        document.getElementById('verifyBox').style.display = 'none';
-        document.getElementById('legacyVerifyBox').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('previewPage').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'none';
-        document.getElementById('userAdminPanel').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'flex';
-        document.getElementById('loginMsg').innerText = '';
+    document.getElementById('profileBox').style.display = 'none';
+    document.getElementById('registerBox').style.display = 'none';
+    document.getElementById('forgotBox').style.display = 'none';
+    document.getElementById('verifyBox').style.display = 'none';
+    document.getElementById('legacyVerifyBox').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('previewPage').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('userAdminPanel').style.display = 'none';
+    document.getElementById('loginBox').style.display = 'flex';
+    document.getElementById('loginMsg').innerText = '';
     }
 
     function showRegister() {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('registerBox').style.display = 'flex';
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('registerBox').style.display = 'flex';
     }
 
     function showForgotBox() {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('forgotBox').style.display = 'flex';
-        document.getElementById('forgotMsg').innerText = '';
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('forgotBox').style.display = 'flex';
+    document.getElementById('forgotMsg').innerText = '';
     }
-    
+
     function hideForgotBox() {
-        showLogin();
+    showLogin();
     }
-    
+
     function showMainAppPage() {
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
     }
 
     function showPreviewPage() {
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('previewPage').style.display = 'block';
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('previewPage').style.display = 'block';
     }
 
     // ▼ 彈出式提示框 ▼
-    function showCustomAlert(msg) { 
-        document.getElementById('customAlertButtons').innerHTML = '<button onclick="closeCustomAlert()">確定</button>'; 
-        document.getElementById('customAlertMsg').innerHTML = String(msg).replace(/\n/g, '<br>'); 
-        document.getElementById('customAlert').style.display = 'flex'; 
+    function showCustomAlert(msg) {
+    document.getElementById('customAlertButtons').innerHTML = '<button onclick="closeCustomAlert()">確定</button>';
+    document.getElementById('customAlertMsg').innerHTML = String(msg).replace(/\n/g, '<br>');
+    document.getElementById('customAlert').style.display = 'flex';
     }
-    
-    function closeCustomAlert() { 
-        document.getElementById('customAlert').style.display = 'none'; 
+
+    function closeCustomAlert() {
+    document.getElementById('customAlert').style.display = 'none';
     }
 
     // ▼ 核心功能函式 ▼
     function register() {
-        const account = document.getElementById('registerAccount').value.trim();
-        const password = document.getElementById('registerPassword').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const serial = document.getElementById('registerSerial').value.trim();
-        const msgDiv = document.getElementById('registerMsg');
-        msgDiv.innerText = '';
-        if (!account || !password || !email || !serial) { msgDiv.innerText = '所有欄位皆為必填'; return; }
-        if (!validatePassword(password)) { msgDiv.innerText = '密碼格式不符，請確認格式'; return; }
-        msgDiv.innerText = '註冊中...';
-        
-        callApi('auth', 'register', { username: account, password, email, serial })
-            .then(res => {
-                if (res.result === 'success_pending_verification') {
-                    msgDiv.innerText = '';
-                    accountToVerify = account;
-                    document.getElementById('registerBox').style.display = 'none';
-                    document.getElementById('verifyBox').style.display = 'flex';
-                    document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
-                }
-            })
-            .catch(err => { msgDiv.innerText = err.message; });
+    const account = document.getElementById('registerAccount').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const serial = document.getElementById('registerSerial').value.trim();
+    const msgDiv = document.getElementById('registerMsg');
+    msgDiv.innerText = '';
+    if (!account || !password || !email || !serial) { msgDiv.innerText = '所有欄位皆為必填'; return; }
+    if (!validatePassword(password)) { msgDiv.innerText = '密碼格式不符，請確認格式'; return; }
+    msgDiv.innerText = '註冊中...';
+
+    callApi('auth', 'register', { username: account, password, email, serial })
+    .then(res => {
+    if (res.result === 'success_pending_verification') {
+    msgDiv.innerText = '';
+    accountToVerify = account;
+    document.getElementById('registerBox').style.display = 'none';
+    document.getElementById('verifyBox').style.display = 'flex';
+    document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
     }
-    
+    })
+    .catch(err => { msgDiv.innerText = err.message; });
+    }
+
     function login() {
-        const account = document.getElementById('loginAccount').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!account || !password) { document.getElementById('loginMsg').innerText = '帳號和密碼不能為空'; return; }
-        document.getElementById('loginMsg').innerText = '登入中...';
-        
-        callApi('auth', 'login', { account, password })
-            .then(res => {
-                if (res.success && res.token) {
-                    localStorage.setItem('authToken', res.token);
-                    currentUserProfile = res.profile;
-                    updateQuotaDisplay();
-                    setQrCountOptions();
-                    updateButtonLabels();
-                    if (currentUserProfile.isAdmin) {
-                        document.getElementById('adminBtn').style.display = 'inline-block';
-                        document.getElementById('userAdminBtn').style.display = 'inline-block';
-                    } else {
-                        document.getElementById('adminBtn').style.display = 'none';
-                        document.getElementById('userAdminBtn').style.display = 'none';
-                    }
-                    showMainAppPage();
-                }
-            })
-            .catch(err => {
-                if (err.json && err.json.reason === 'unverified') {
-                    accountToVerify = account;
-                    document.getElementById('loginBox').style.display = 'none';
-                    document.getElementById('verifyBox').style.display = 'flex';
-                    document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
-                    document.getElementById('loginMsg').innerText = '';
-                } else {
-                    document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
-                }
-            });
+    const account = document.getElementById('loginAccount').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!account || !password) { document.getElementById('loginMsg').innerText = '帳號和密碼不能為空'; return; }
+    document.getElementById('loginMsg').innerText = '登入中...';
+
+    callApi('auth', 'login', { account, password })
+    .then(res => {
+    if (res.success && res.token) {
+    localStorage.setItem('authToken', res.token);
+    currentUserProfile = res.profile;
+    updateQuotaDisplay();
+    setQrCountOptions();
+    updateButtonLabels();
+    if (currentUserProfile.isAdmin) {
+    document.getElementById('adminBtn').style.display = 'inline-block';
+    document.getElementById('userAdminBtn').style.display = 'inline-block';
+    } else {
+    document.getElementById('adminBtn').style.display = 'none';
+    document.getElementById('userAdminBtn').style.display = 'none';
     }
-        
+    showMainAppPage();
+    }
+    })
+    .catch(err => {
+    if (err.json && err.json.reason === 'unverified') {
+    accountToVerify = account;
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('verifyBox').style.display = 'flex';
+    document.getElementById('verifyInfoMsg').innerHTML = `此帳號 <strong style="color: #007bff;">${account}</strong> 尚未完成信箱驗證。<br>請檢查您的信箱以獲取驗證碼。`;
+    document.getElementById('loginMsg').innerText = '';
+    } else {
+    document.getElementById('loginMsg').innerText = '登入失敗：' + err.message;
+    }
+    });
+    }
+
     function logout() {
-        localStorage.removeItem('authToken');
-        currentUserProfile = null;
-        showLogin();
+    localStorage.removeItem('authToken');
+    currentUserProfile = null;
+    showLogin();
     }
 
     function loadBankSelect() {
-      fetch('/api/getBanks')
-        .then(response => {
-          if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.error || '無法從伺服器獲取銀行列表。') });
-          }
-          return response.json();
-        })
-        .then(banks => {
-          const select = document.getElementById('bankSelect');
-          const otherOption = select.querySelector('option[value="other"]'); 
-          while (select.options.length > 2) { select.remove(1); }
-          if (banks && banks.length > 0) {
-            banks.forEach(function(name) { 
-              const opt = document.createElement('option'); 
-              opt.value = name; 
-              opt.textContent = name; 
-              select.insertBefore(opt, otherOption);
-            }); 
-          }
-        })
-        .catch(error => {
-          console.error("載入銀行列表失敗:", error);
-          showCustomAlert("無法載入銀行列表，請確認後端設定是否正確。");
-        });
+    fetch('/api/getBanks')
+    .then(response => {
+    if (!response.ok) {
+    return response.json().then(err => { throw new Error(err.error || '無法從伺服器獲取銀行列表。') });
+    }
+    return response.json();
+    })
+    .then(banks => {
+    const select = document.getElementById('bankSelect');
+    const otherOption = select.querySelector('option[value="other"]');
+    while (select.options.length > 2) { select.remove(1); }
+    if (banks && banks.length > 0) {
+    banks.forEach(function(name) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.insertBefore(opt, otherOption);
+    });
+    }
+    })
+    .catch(error => {
+    console.error("載入銀行列表失敗:", error);
+    showCustomAlert("無法載入銀行列表，請確認後端設定是否正確。");
+    });
     }
 
-    function handleGenerateClick() { 
-        if (!validateInputs()) return;
-        showCustomAlert("正在後端計算條碼，請稍候...");
-        const incrementType = document.getElementById('amountIncrementType').value;
-        const incrementAmount = (incrementType === 'custom') ? (parseInt(document.getElementById('customIncrementAmount').value, 10) || 0) : parseInt(incrementType, 10);
-        const params = {
-            firstBarcode: document.getElementById("firstBarcode").value.trim().toUpperCase(),
-            secondBarcode: document.getElementById("secondBarcode").value.trim().toUpperCase(),
-            paymentDue: document.getElementById("paymentDue").value.trim(),
-            paymentAmount: document.getElementById("paymentAmount").value.trim(),
-            qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1,
-            barcodeType: document.getElementById("barcodeType").value,
-            incrementAmount: incrementAmount,
-            requestKey: generateRequestKey()
-        };
-        callApi('generateBarcodes', null, params)
-            .then(backendResult => {
-                closeCustomAlert();
-                generatedBarcodeData = backendResult.barcodes;
-                currentBatchRequestKey = backendResult.requestKey;
-                generatePreviewUI();
-                showPreviewPage();
-            })
-            .catch(error => {
-                closeCustomAlert();
-                showCustomAlert("處理失敗：<br>" + error.message);
-            });
+    function handleGenerateClick() {
+    if (!validateInputs()) return;
+    showCustomAlert("正在後端計算條碼，請稍候...");
+    const incrementType = document.getElementById('amountIncrementType').value;
+    const incrementAmount = (incrementType === 'custom') ? (parseInt(document.getElementById('customIncrementAmount').value, 10) || 0) : parseInt(incrementType, 10);
+    const params = {
+    firstBarcode: document.getElementById("firstBarcode").value.trim().toUpperCase(),
+    secondBarcode: document.getElementById("secondBarcode").value.trim().toUpperCase(),
+    paymentDue: document.getElementById("paymentDue").value.trim(),
+    paymentAmount: document.getElementById("paymentAmount").value.trim(),
+    qrCount: parseInt(document.getElementById("qrCount").value, 10) || 1,
+    barcodeType: document.getElementById("barcodeType").value,
+    incrementAmount: incrementAmount,
+    requestKey: generateRequestKey()
+    };
+    callApi('generateBarcodes', null, params)
+    .then(backendResult => {
+    closeCustomAlert();
+    generatedBarcodeData = backendResult.barcodes;
+    currentBatchRequestKey = backendResult.requestKey;
+    generatePreviewUI();
+    showPreviewPage();
+    })
+    .catch(error => {
+    closeCustomAlert();
+    showCustomAlert("處理失敗：<br>" + error.message);
+    });
     }
 
     function generatePreviewUI() {
-        const container = document.getElementById("previewContainer");
-        container.innerHTML = "";
-        const downloadBtn = document.getElementById('downloadAllBtn');
-        downloadBtn.style.display = 'none';
-        if (!generatedBarcodeData || generatedBarcodeData.length === 0) return;
-        const displayLimit = 10;
-        generatedBarcodeData.slice(0, displayLimit).forEach(data => {
-            const wrapper = createBarcodeWrapper(data, false, false);
-            container.appendChild(wrapper);
-            wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
-                const barcodeValue = canvas.getAttribute('data-barcode');
-                JsBarcode(canvas, barcodeValue, { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
-            });
-        });
-        if (generatedBarcodeData.length > 0) {
-            downloadBtn.textContent = `全部下載條碼 (${generatedBarcodeData.length})`;
-            downloadBtn.style.display = 'inline-block';
-        }
+    const container = document.getElementById("previewContainer");
+    container.innerHTML = "";
+    const downloadBtn = document.getElementById('downloadAllBtn');
+    downloadBtn.style.display = 'none';
+    if (!generatedBarcodeData || generatedBarcodeData.length === 0) return;
+    const displayLimit = 10;
+    generatedBarcodeData.slice(0, displayLimit).forEach(data => {
+    const wrapper = createBarcodeWrapper(data, false, false);
+    container.appendChild(wrapper);
+    wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
+    const barcodeValue = canvas.getAttribute('data-barcode');
+    JsBarcode(canvas, barcodeValue, { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
+    });
+    });
+    if (generatedBarcodeData.length > 0) {
+    downloadBtn.textContent = `全部下載條碼 (${generatedBarcodeData.length})`;
+    downloadBtn.style.display = 'inline-block';
     }
-    
+    }
+
     function createBarcodeWrapper(data, includeTitle, includeReminder) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "qr-wrapper";
-        const serialNumber = document.createElement("div");
-        serialNumber.className = "serial-number";
-        serialNumber.textContent = data.serial;
-        wrapper.appendChild(serialNumber);
-        if (includeTitle) {
-            const title = document.createElement("div");
-            title.className = "barcode-title";
-            title.textContent = "超商繳費條碼";
-            wrapper.appendChild(title);
-        }
-        data.barcodes.forEach((code, idx) => {
-            const barcodeContainer = document.createElement("div");
-            const marginBottomValue = (idx < 2) ? (includeTitle ? "40px" : "36px") : "0";
-            let style = `margin-bottom: ${marginBottomValue}; text-align:center; overflow-x:auto; width:100%;`;
-            if (!includeTitle && idx === 0) style += `padding-top: 10px;`;
-            barcodeContainer.style.cssText = style;
-            const canvas = document.createElement("canvas");
-            canvas.className = "barcode-canvas";
-            canvas.setAttribute('data-barcode', code);
-            barcodeContainer.appendChild(canvas);
-            const textDiv = document.createElement("div");
-            textDiv.textContent = code;
-            textDiv.style.cssText = "font-family: monospace; font-size: 22px; letter-spacing: 1px; margin-top: 4px;";
-            barcodeContainer.appendChild(textDiv);
-            wrapper.appendChild(barcodeContainer);
-        });
-        if (includeReminder) {
-            const reminder = document.createElement("div");
-            reminder.className = "barcode-reminder";
-            reminder.textContent = "提醒您，超商繳款上限為2萬元。";
-            wrapper.appendChild(reminder);
-        }
-        return wrapper;
+    const wrapper = document.createElement("div");
+    wrapper.className = "qr-wrapper";
+    const serialNumber = document.createElement("div");
+    serialNumber.className = "serial-number";
+    serialNumber.textContent = data.serial;
+    wrapper.appendChild(serialNumber);
+    if (includeTitle) {
+    const title = document.createElement("div");
+    title.className = "barcode-title";
+    title.textContent = "超商繳費條碼";
+    wrapper.appendChild(title);
+    }
+    data.barcodes.forEach((code, idx) => {
+    const barcodeContainer = document.createElement("div");
+    const marginBottomValue = (idx < 2) ? (includeTitle ? "40px" : "36px") : "0";
+    let style = `margin-bottom: ${marginBottomValue}; text-align:center; overflow-x:auto; width:100%;`;
+    if (!includeTitle && idx === 0) style += `padding-top: 10px;`;
+    barcodeContainer.style.cssText = style;
+    const canvas = document.createElement("canvas");
+    canvas.className = "barcode-canvas";
+    canvas.setAttribute('data-barcode', code);
+    barcodeContainer.appendChild(canvas);
+    const textDiv = document.createElement("div");
+    textDiv.textContent = code;
+    textDiv.style.cssText = "font-family: monospace; font-size: 22px; letter-spacing: 1px; margin-top: 4px;";
+    barcodeContainer.appendChild(textDiv);
+    wrapper.appendChild(barcodeContainer);
+    });
+    if (includeReminder) {
+    const reminder = document.createElement("div");
+    reminder.className = "barcode-reminder";
+    reminder.textContent = "提醒您，超商繳款上限為2萬元。";
+    wrapper.appendChild(reminder);
+    }
+    return wrapper;
     }
 
     function startDownloadProcess() {
-        const qrCount = generatedBarcodeData.length;
-        if (qrCount === 0) { return showCustomAlert("沒有可下載的項目。"); }
-        const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
-        const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
-        document.getElementById('customAlertMsg').innerHTML = msg;
-        document.getElementById('customAlertButtons').innerHTML = buttons;
-        document.getElementById('customAlert').style.display = 'flex';
-        document.getElementById('confirmBtn').onclick = function() {
-            const includeTitle = document.getElementById('includeTitleForDownload').checked;
-            const includeReminder = document.getElementById('includeReminderForDownload').checked;
-            closeCustomAlert();
-            showCustomAlert("正在與伺服器確認額度...");
-            callApi('deductQuota', null, { countToDeduct: qrCount, requestKey: currentBatchRequestKey })
-                .then(res => {
-                    if (res.success) {
-                        currentUserProfile.current_quota = res.newQuota;
-                        executeDownload(includeTitle, includeReminder);
-                    }
-                })
-                .catch(err => { showCustomAlert('操作失敗：<br>' + err.message); });
-        };
+    const qrCount = generatedBarcodeData.length;
+    if (qrCount === 0) { return showCustomAlert("沒有可下載的項目。"); }
+    const msg = `<div class="download-alert-title">下載將會扣除額度</div><div class="download-alert-desc">確定要下載全部 <b>${qrCount}</b> 張圖檔嗎？</div><div class="download-alert-list-title">下載圖片含下列文字：</div><div class="download-alert-checkboxes"><label class="checkbox-label-align"><input type="checkbox" id="includeTitleForDownload" checked> 超商繳費條碼</label><label class="checkbox-label-align"><input type="checkbox" id="includeReminderForDownload" checked> 提醒您，超商繳款上限為2萬元。</label></div>`;
+    const buttons = `<button id="cancelBtn" onclick="closeCustomAlert()">取消</button><button id="confirmBtn">確定</button>`;
+    document.getElementById('customAlertMsg').innerHTML = msg;
+    document.getElementById('customAlertButtons').innerHTML = buttons;
+    document.getElementById('customAlert').style.display = 'flex';
+    document.getElementById('confirmBtn').onclick = function() {
+    const includeTitle = document.getElementById('includeTitleForDownload').checked;
+    const includeReminder = document.getElementById('includeReminderForDownload').checked;
+    closeCustomAlert();
+    showCustomAlert("正在與伺服器確認額度...");
+    callApi('deductQuota', null, { countToDeduct: qrCount, requestKey: currentBatchRequestKey })
+    .then(res => {
+    if (res.success) {
+    currentUserProfile.current_quota = res.newQuota;
+    executeDownload(includeTitle, includeReminder);
+    }
+    })
+    .catch(err => { showCustomAlert('操作失敗：<br>' + err.message); });
+    };
     }
 
     function executeDownload(includeTitle, includeReminder) {
-        showCustomAlert("準備下載中，請稍候...");
-        const zip = new JSZip();
-        const tempContainer = document.createElement("div");
-        tempContainer.style.cssText = "position: fixed; left: -9999px; top: 0; padding: 28px 24px 20px 24px;";
-        document.body.appendChild(tempContainer);
-        const promises = generatedBarcodeData.map(data => {
-            return new Promise((resolve, reject) => {
-                const wrapper = createBarcodeWrapper(data, includeTitle, includeReminder);
-                tempContainer.appendChild(wrapper);
-                setTimeout(() => {
-                    try {
-                        wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
-                            JsBarcode(canvas, canvas.getAttribute('data-barcode'), { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
-                        });
-                        html2canvas(wrapper, { scale: 2 }).then(canvas => {
-                            const base64 = canvas.toDataURL("image/png").split(',')[1];
-                            zip.file(`信用卡帳單_${data.serial}.png`, base64, { base64: true });
-                            tempContainer.removeChild(wrapper);
-                            resolve();
-                        }).catch(reject);
-                    } catch (e) { reject(e); }
-                }, 50);
-            });
-        });
-        Promise.all(promises).then(() => {
-            document.body.removeChild(tempContainer);
-            if (Object.keys(zip.files).length > 0) {
-                showCustomAlert("正在壓縮檔案...");
-                zip.generateAsync({ type: "blob" }).then(content => {
-                    saveAs(content, "信用卡帳單.zip");
-                    closeCustomAlert();
-                });
-            } else { showCustomAlert("沒有可下載的項目。"); }
-        }).catch(err => {
-            document.body.removeChild(tempContainer);
-            showCustomAlert('產生圖片失敗: ' + err.message);
-        });
+    showCustomAlert("準備下載中，請稍候...");
+    const zip = new JSZip();
+    const tempContainer = document.createElement("div");
+    tempContainer.style.cssText = "position: fixed; left: -9999px; top: 0; padding: 28px 24px 20px 24px;";
+    document.body.appendChild(tempContainer);
+    const promises = generatedBarcodeData.map(data => {
+    return new Promise((resolve, reject) => {
+    const wrapper = createBarcodeWrapper(data, includeTitle, includeReminder);
+    tempContainer.appendChild(wrapper);
+    setTimeout(() => {
+    try {
+    wrapper.querySelectorAll("canvas.barcode-canvas").forEach(canvas => {
+    JsBarcode(canvas, canvas.getAttribute('data-barcode'), { format: "CODE128", displayValue: false, height: 50, width: 1.5, margin: 0, background: "transparent" });
+    });
+    html2canvas(wrapper, { scale: 2 }).then(canvas => {
+    const base64 = canvas.toDataURL("image/png").split(',')[1];
+    zip.file(`信用卡帳單_${data.serial}.png`, base64, { base64: true });
+    tempContainer.removeChild(wrapper);
+    resolve();
+    }).catch(reject);
+    } catch (e) { reject(e); }
+    }, 50);
+    });
+    });
+    Promise.all(promises).then(() => {
+    document.body.removeChild(tempContainer);
+    if (Object.keys(zip.files).length > 0) {
+    showCustomAlert("正在壓縮檔案...");
+    zip.generateAsync({ type: "blob" }).then(content => {
+    saveAs(content, "信用卡帳單.zip");
+    closeCustomAlert();
+    });
+    } else { showCustomAlert("沒有可下載的項目。"); }
+    }).catch(err => {
+    document.body.removeChild(tempContainer);
+    showCustomAlert('產生圖片失敗: ' + err.message);
+    });
     }
 
     function validatePassword(password) { return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/.test(password); }
-    
+
     function verifyCode() {
-        const code = document.getElementById('verifyCode').value.trim();
-        const msgDiv = document.getElementById('verifyMsg');
-        msgDiv.innerText = '';
-        if (!code || code.length !== 6) { msgDiv.innerText = '請輸入 6 位數驗證碼。'; return; }
-        msgDiv.innerText = '驗證中...';
-        callApi('auth', 'verifyCode', { account: accountToVerify, code: code })
-            .then(res => {
-                if (res.success) {
-                    msgDiv.innerText = '';
-                    showCustomAlert('信箱驗證成功！\n現在您可以登入了。');
-                    showLogin();
-                }
-            })
-            .catch(err => {
-                if (err.message.includes('過期')) {
-                    msgDiv.innerText = '驗證碼已過期，請點擊下方的「重新寄送」按鈕獲取新碼。';
-                } else {
-                    msgDiv.innerText = err.message;
-                }
-            });
+    const code = document.getElementById('verifyCode').value.trim();
+    const msgDiv = document.getElementById('verifyMsg');
+    msgDiv.innerText = '';
+    if (!code || code.length !== 6) { msgDiv.innerText = '請輸入 6 位數驗證碼。'; return; }
+    msgDiv.innerText = '驗證中...';
+    callApi('auth', 'verifyCode', { account: accountToVerify, code: code })
+    .then(res => {
+    if (res.success) {
+    msgDiv.innerText = '';
+    showCustomAlert('信箱驗證成功！\n現在您可以登入了。');
+    showLogin();
+    }
+    })
+    .catch(err => {
+    if (err.message.includes('過期')) {
+    msgDiv.innerText = '驗證碼已過期，請點擊下方的「重新寄送」按鈕獲取新碼。';
+    } else {
+    msgDiv.innerText = err.message;
+    }
+    });
     }
 
     function resendCode() {
-        const msgDiv = document.getElementById('verifyMsg');
-        msgDiv.innerText = '正在重新寄送...';
-        callApi('auth', 'resendCode', { account: accountToVerify })
-            .then(res => {
-                if (res.success) {
-                    msgDiv.innerText = '';
-                    showCustomAlert('新的驗證碼已成功寄出，請檢查您的信箱。');
-                }
-            })
-            .catch(err => { msgDiv.innerText = err.message; });
+    const msgDiv = document.getElementById('verifyMsg');
+    msgDiv.innerText = '正在重新寄送...';
+    callApi('auth', 'resendCode', { account: accountToVerify })
+    .then(res => {
+    if (res.success) {
+    msgDiv.innerText = '';
+    showCustomAlert('新的驗證碼已成功寄出，請檢查您的信箱。');
+    }
+    })
+    .catch(err => { msgDiv.innerText = err.message; });
     }
 
     function updateQuotaDisplay() {
-        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
-        document.getElementById('quotaDisplay').innerText = quota;
+    const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
+    document.getElementById('quotaDisplay').innerText = quota;
     }
 
     function setQrCountOptions() {
-        const select = document.getElementById('qrCount');
-        const generateBtn = document.getElementById("generateBtn");
-        select.innerHTML = "";
-        const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
-        const max = Math.min(40, quota);
-        if (max > 0) {
-            for (let i = 1; i <= max; i++) { 
-                const option = document.createElement('option'); 
-                option.value = i; 
-                option.textContent = i; 
-                select.appendChild(option); 
-            }
-            select.disabled = false;
-            generateBtn.disabled = false;
-        } else {
-            const option = document.createElement('option');
-            option.value = 0;
-            option.textContent = "0";
-            select.appendChild(option);
-            select.disabled = true;
-            generateBtn.disabled = true;
-        }
+    const select = document.getElementById('qrCount');
+    const generateBtn = document.getElementById("generateBtn");
+    select.innerHTML = "";
+    const quota = (currentUserProfile && typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 0;
+    const max = Math.min(40, quota);
+    if (max > 0) {
+    for (let i = 1; i <= max; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.textContent = i;
+    select.appendChild(option);
     }
-    
-    function clearPreviews() {
-        document.getElementById('previewContainer').innerHTML = '';
-        document.getElementById('downloadAllBtn').style.display = 'none';
-        generatedBarcodeData = [];
+    select.disabled = false;
+    generateBtn.disabled = false;
+    } else {
+    const option = document.createElement('option');
+    option.value = 0;
+    option.textContent = "0";
+    select.appendChild(option);
+    select.disabled = true;
+    generateBtn.disabled = true;
+    }
     }
 
-    function forgotPassword() { 
-        const email = document.getElementById('forgotEmail').value.trim(); 
-        const msgDiv = document.getElementById('forgotMsg');
-        if (!email) { msgDiv.innerText = '請輸入您註冊時使用的電子信箱'; return; }
-        msgDiv.innerText = '處理中...'; 
-        callApi('auth', 'forgotPassword', { email: email })
-            .then(res => {
-                msgDiv.innerText = '';
-                showCustomAlert(res.message);
-            })
-            .catch(err => {
-                msgDiv.innerText = '';
-                showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封提示郵件。');
-            });
+    function clearPreviews() {
+    document.getElementById('previewContainer').innerHTML = '';
+    document.getElementById('downloadAllBtn').style.display = 'none';
+    generatedBarcodeData = [];
+    }
+
+    function forgotPassword() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    const msgDiv = document.getElementById('forgotMsg');
+    if (!email) { msgDiv.innerText = '請輸入您註冊時使用的電子信箱'; return; }
+    msgDiv.innerText = '處理中...';
+    callApi('auth', 'forgotPassword', { email: email })
+    .then(res => {
+    msgDiv.innerText = '';
+    showCustomAlert(res.message);
+    })
+    .catch(err => {
+    msgDiv.innerText = '';
+    showCustomAlert('如果您的信箱存在於我們的系統中，您將會收到一封提示郵件。');
+    });
     }
 
     function onFirstBarcodeInput() {}
     function onBankSelectChange() {
-        const isOther = document.getElementById('bankSelect').value === 'other';
-        document.getElementById('bankInput').style.display = isOther ? 'block' : 'none';
-        document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
+    const isOther = document.getElementById('bankSelect').value === 'other';
+    document.getElementById('bankInput').style.display = isOther ? 'block' : 'none';
+    document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
 
     function showProfile() {
-        if (!currentUserProfile) { showCustomAlert("無法獲取會員資料，請重新登入。"); return; }
-        document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
-        document.getElementById('profileEmail').value = currentUserProfile.email || '';
-        document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
-        const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
-        const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
-        document.getElementById('profileRegisterDate').textContent = registerDate;
-        document.getElementById('profileLastModified').textContent = lastModified;
-        document.getElementById('profilePassword').value = '';
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('profileMsg').textContent = '';
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('profileBox').style.display = 'flex';
+    if (!currentUserProfile) { showCustomAlert("無法獲取會員資料，請重新登入。"); return; }
+    document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
+    document.getElementById('profileEmail').value = currentUserProfile.email || '';
+    document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
+    const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
+    const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
+    document.getElementById('profileRegisterDate').textContent = registerDate;
+    document.getElementById('profileLastModified').textContent = lastModified;
+    document.getElementById('profilePassword').value = '';
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('profileMsg').textContent = '';
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('profileBox').style.display = 'flex';
     }
 
     function hideProfile() {
-        document.getElementById('profileBox').style.display = 'none';
-        showMainAppPage();
+    document.getElementById('profileBox').style.display = 'none';
+    showMainAppPage();
     }
 
     function saveProfile() {
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('profilePassword').value;
-        const profileMsg = document.getElementById('profileMsg');
-        if (!currentPassword) { profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。'; return; }
-        if (newPassword && !validatePassword(newPassword)) { profileMsg.textContent = '新密碼格式不符合要求。'; return; }
-        if (!newPassword) { profileMsg.textContent = '資料未變更。'; setTimeout(hideProfile, 1500); return; }
-        profileMsg.textContent = '儲存中...';
-        callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null })
-            .then(res => {
-                if (res.success) {
-                    profileMsg.textContent = res.message;
-                    if (newPassword) {
-                        showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
-                        setTimeout(logout, 2000); 
-                    }
-                }
-            })
-            .catch(err => { profileMsg.textContent = '更新失敗：' + err.message; });
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('profilePassword').value;
+    const profileMsg = document.getElementById('profileMsg');
+    if (!currentPassword) { profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。'; return; }
+    if (newPassword && !validatePassword(newPassword)) { profileMsg.textContent = '新密碼格式不符合要求。'; return; }
+    if (!newPassword) { profileMsg.textContent = '資料未變更。'; setTimeout(hideProfile, 1500); return; }
+    profileMsg.textContent = '儲存中...';
+    callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null })
+    .then(res => {
+    if (res.success) {
+    profileMsg.textContent = res.message;
+    if (newPassword) {
+    showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
+    setTimeout(logout, 2000);
+    }
+    }
+    })
+    .catch(err => { profileMsg.textContent = '更新失敗：' + err.message; });
     }
 
-    // index.html 中的函式 (最終版)
-
-function showAdminPanel() {
+    function showAdminPanel() {
     showLogin();
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'flex';
     document.getElementById('adminMsg').innerText = '';
-    loadSerialCodes(); // 啟用載入函式
-}
+    loadSerialCodes();
+    }
 
-function hideAdminPanel() {
+    function hideAdminPanel() {
     document.getElementById('adminPanel').style.display = 'none';
     showMainAppPage();
-}
+    }
 
-function loadSerialCodes() {
+    function loadSerialCodes() {
     const tbody = document.getElementById('serialTableBody');
     tbody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
-    
-    const headers = { 'Content-Type': 'application/json' };
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    callApi('admin', 'getSerials')
+    .then(serials => {
+    tbody.innerHTML = '';
+    if (serials && serials.length > 0) {
+    serials.forEach(serial => addSerialRow(serial.serial_code, serial.total_limit, serial.used_count));
     }
-
-    fetch('/api/admin/serials', { method: 'GET', headers: headers })
-        .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
-        .then(serials => {
-            tbody.innerHTML = '';
-            if (serials && serials.length > 0) {
-                serials.forEach(serial => addSerialRow(serial.serial_code, serial.total_limit, serial.used_count));
-            }
-        })
-        .catch(err => {
-            tbody.innerHTML = `<tr style="color:red;"><td colspan="4">載入失敗: ${err.message}</td></tr>`;
-        });
-}
-
-function addSerialRow(serial = '', total = '', used = '') {
-    const tbody = document.getElementById('serialTableBody');
-    const newRow = tbody.insertRow();
-    newRow.innerHTML = `
-        <td><input type="text" class="serial-input" value="${serial}"></td>
-        <td><input type="number" class="total-input" value="${total}"></td>
-        <td><input type="number" class="used-input" value="${used}" disabled></td> <!-- 已使用次數設為不可編輯 -->
-        <td><button class="delete-row-btn">刪除</button></td>
-    `;
-}
-
-function deleteSerialRow(btn) {
-    btn.closest('tr').remove();
-}
-
-function saveSerialCodes() {
-    const msgDiv = document.getElementById('adminMsg');
-    msgDiv.innerText = '儲存中...';
-
-    const tableRows = document.querySelectorAll('#serialTableBody tr');
-    const serialsData = Array.from(tableRows).map(row => {
-        const serialCode = row.querySelector('.serial-input').value.trim();
-        const totalLimit = parseInt(row.querySelector('.total-input').value, 10);
-        const usedCount = parseInt(row.querySelector('.used-input').value, 10);
-
-        // 只儲存有填寫註冊碼的行
-        if (serialCode && !isNaN(totalLimit)) {
-            return {
-                serial_code: serialCode,
-                total_limit: totalLimit,
-                used_count: usedCount || 0
-            };
-        }
-        return null;
-    }).filter(Boolean); // 過濾掉為 null 的項目
-
-    // 使用 POST 方法呼叫新的統一端點
-    const headers = { 'Content-Type': 'application/json' };
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    fetch('/api/admin/serials', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(serialsData)
-    })
-    .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
-    .then(res => {
-        if (res.success) {
-            msgDiv.innerText = res.message;
-            setTimeout(() => { 
-                msgDiv.innerText = '';
-                loadSerialCodes();
-            }, 2000);
-        }
     })
     .catch(err => {
-        msgDiv.innerText = '儲存失敗: ' + err.message;
+    tbody.innerHTML = `<tr style="color:red;"><td colspan="4">載入失敗: ${err.message}</td></tr>`;
     });
-}
+    }
 
-    function hideAdminPanel() { showMainAppPage(); }
-    function loadSerialCodes() { /* 待實現 */ }
-    function addSerialRow() {}
-    function deleteSerialRow() {}
-    function saveSerialCodes() {}
+    function addSerialRow(serial = '', total = '', used = '') {
+    const tbody = document.getElementById('serialTableBody');
+    const newRow = tbody.insertRow();
+    newRow.innerHTML = `<td><input type="text" class="serial-input" value="${serial}"></td><td><input type="number" class="total-input" value="${total}"></td><td><input type="number" class="used-input" value="${used}" disabled></td><td><button class="delete-row-btn">刪除</button></td>`;
+    }
+
+    function deleteSerialRow(btn) {
+    btn.closest('tr').remove();
+    }
+
+    function saveSerialCodes() {
+    const msgDiv = document.getElementById('adminMsg');
+    msgDiv.innerText = '儲存中...';
+    const tableRows = document.querySelectorAll('#serialTableBody tr');
+    const serialsData = Array.from(tableRows).map(row => {
+    const serialCode = row.querySelector('.serial-input').value.trim();
+    const totalLimit = parseInt(row.querySelector('.total-input').value, 10);
+    const usedCount = parseInt(row.querySelector('.used-input').value, 10);
+    if (serialCode && !isNaN(totalLimit)) {
+    return { serial_code: serialCode, total_limit: totalLimit, used_count: usedCount || 0 };
+    }
+    return null;
+    }).filter(Boolean);
+    callApi('admin', 'updateSerials', serialsData)
+    .then(res => {
+    if (res.success) {
+    msgDiv.innerText = res.message;
+    setTimeout(() => { msgDiv.innerText = ''; loadSerialCodes(); }, 2000);
+    }
+    })
+    .catch(err => {
+    msgDiv.innerText = '儲存失敗: ' + err.message;
+    });
+    }
 
     function showUserAdminPanel() {
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('userAdminPanel').style.display = 'flex';
-        document.getElementById('userAdminMsg').innerText = '';
-        loadUsersForAdmin();
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('userAdminPanel').style.display = 'flex';
+    document.getElementById('userAdminMsg').innerText = '';
+    loadUsersForAdmin();
     }
 
     function hideUserAdminPanel() {
-        document.getElementById('userAdminPanel').style.display = 'none';
-        showCustomAlert('正在更新您的最新資訊...');
-        const headers = {};
-        const token = localStorage.getItem('authToken');
-        if (token) { headers['Authorization'] = `Bearer ${token}`; }
-        fetch('/api/getProfile', { method: 'GET', headers: headers })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
-            }
-            return response.json();
-        })
-        .then(latestProfile => {
-            closeCustomAlert();
-            currentUserProfile = latestProfile;
-            updateQuotaDisplay();
-            setQrCountOptions();
-            updateButtonLabels();
-            showMainAppPage();
-        })
-        .catch(err => {
-            console.error("重新獲取個人資料失敗:", err);
-            closeCustomAlert();
-            showCustomAlert("無法同步最新資料，顯示的可能為舊額度。");
-            showMainAppPage();
-        });
+    document.getElementById('userAdminPanel').style.display = 'none';
+    showCustomAlert('正在更新您的最新資訊...');
+    const headers = {};
+    const token = localStorage.getItem('authToken');
+    if (token) { headers['Authorization'] = `Bearer ${token}`; }
+    fetch('/api/getProfile', { method: 'GET', headers: headers })
+    .then(response => {
+    if (!response.ok) {
+    return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
     }
-    
-    function loadUsersForAdmin() {
-        const tbody = document.getElementById('userTableBody');
-        tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
-        callApi('admin', 'getUsers')
-        .then(users => {
-            tbody.innerHTML = '';
-            if (users && users.length > 0) {
-                users.forEach(user => {
-                    const newRow = tbody.insertRow();
-                    newRow.dataset.userId = user.id;
-                    const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
-                    newRow.innerHTML = `
-                        <td>${user.account}</td>
-                        <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
-                        <td><input type="number" value="${user.current_quota}"></td>
-                        <td><input type="number" value="${user.reset_quota}"></td>
-                        <td>${registerDate}</td>
-                    `;
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
-            }
-        })
-        .catch(err => {
-            tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
-        });
+    return response.json();
+    })
+    .then(latestProfile => {
+    closeCustomAlert();
+    currentUserProfile = latestProfile;
+    updateQuotaDisplay();
+    setQrCountOptions();
+    updateButtonLabels();
+    showMainAppPage();
+    })
+    .catch(err => {
+    console.error("重新獲取個人資料失敗:", err);
+    closeCustomAlert();
+    showCustomAlert("無法同步最新資料，顯示的可能為舊額度。");
+    showMainAppPage();
+    });
     }
 
-    // index.html 中的 saveUsersByAdmin (最終修正版)
-    // index.html 中的 saveUsersByAdmin (最終完整版)
+    function loadUsersForAdmin() {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
+    callApi('admin', 'getUsers')
+    .then(users => {
+    tbody.innerHTML = '';
+    if (users && users.length > 0) {
+    users.forEach(user => {
+    const newRow = tbody.insertRow();
+    newRow.dataset.userId = user.id;
+    const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
+    newRow.innerHTML = `
+    <td>${user.account}</td>
+    <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
+    <td><input type="number" value="${user.current_quota}"></td>
+    <td><input type="number" value="${user.reset_quota}"></td>
+    <td>${registerDate}</td>
+    `;
+    });
+    } else {
+    tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
+    }
+    })
+    .catch(err => {
+    tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
+    });
+    }
 
     function saveUsersByAdmin() {
-        // 步驟 1: 獲取訊息顯示區塊，並更新 UI 提示為「儲存中...」
-        const msgDiv = document.getElementById('userAdminMsg');
-        msgDiv.innerText = '儲存中...';
-        
-        // 步驟 2: 獲取表格主體 (tbody) 中的所有資料列 (tr)
-        const tableRows = document.querySelectorAll('#userTableBody tr');
-        
-        // 步驟 3: 使用 Array.from() 和 .map() 遍歷每一行，將其轉換為後端需要的資料物件格式
-        const usersData = Array.from(tableRows).map(row => {
-            // 從每一行的 data-user-id 屬性中，讀取我們之前在 loadUsersForAdmin 中儲存的使用者 ID
-            const userId = parseInt(row.dataset.userId, 10);
-            
-            // 從第一個儲存格 (<td>) 中，讀取帳號文字
-            const accountValue = row.cells[0].innerText;
-        
-            // 從第二個儲存格中，找到 checkbox 並讀取其勾選狀態 (true/false)
-            const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
-            
-            // 從第三個儲存格中，找到數字輸入框並讀取其值
-            const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
-            
-            // 從第四個儲存格中，找到數字輸入框並讀取其值
-            const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
-
-            // 步驟 4: 組合成一個物件。這個物件的 key (鍵) 必須與 Supabase users 表的欄位名稱，
-            // 以及後端 API 期望接收的欄位名稱完全一致。
-            return {
-                id: userId,                   // 【重要】必須包含 id，後端才能知道要更新哪一筆資料
-                account: accountValue,        // 【重要】包含 account，避免 'not-null' 錯誤
-                permission: permissionValue,  // 對應 'permission' 欄位
-                current_quota: currentQuotaValue,
-                reset_quota: resetQuotaValue
-            };
-        });
-
-        // 步驟 5: 呼叫後端 /api/admin/updateUsers 端點
-        // 我們將整個使用者資料陣列 (usersData) 作為 body 發送
-        callApi('admin/updateUsers', usersData)
-            .then(res => {
-                // 步驟 6: 處理後端回傳的成功回應
-                if (res.success) {
-                    // 在畫面上顯示成功訊息
-                    msgDiv.innerText = res.message;
-                    
-                    // 為了讓使用者看到最新的狀態，在短暫顯示成功訊息後，自動重新載入使用者列表
-                    setTimeout(() => { 
-                        msgDiv.innerText = '';
-                        loadUsersForAdmin(); 
-                    }, 2000);
-                }
-            })
-            .catch(err => {
-                // 步驟 7: 處理後端回傳的錯誤回應
-                // 將後端提供的錯誤訊息，直接顯示在畫面上
-                msgDiv.innerText = '儲存失敗: ' + err.message;
-            });
-    }
-
-    function updateButtonLabels() { 
-        const countInput = document.getElementById('qrCount');
-        if (countInput && countInput.value) {
-            const count = parseInt(countInput.value, 10) || 1; 
-            document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`; 
-        }
-    }
-    
-    function generateRequestKey() { 
-        const dataToEncode = [
-            document.getElementById('firstBarcode').value.trim(), 
-            document.getElementById('secondBarcode').value.trim(), 
-            document.getElementById("paymentDue").value.trim(), 
-            document.getElementById("paymentAmount").value.trim(), 
-            document.getElementById('qrCount').value
-        ].join('|');
-        try {
-            return btoa(encodeURIComponent(dataToEncode)); 
-        } catch (e) {
-            console.error("btoa encoding failed:", e);
-            return `fallback_${new Date().getTime()}`;
-        }
-    }
-
-    function validateInputs() { 
-        const first = document.getElementById('firstBarcode').value.trim(); 
-        const second = document.getElementById('secondBarcode').value.trim(); 
-        const paymentDue = document.getElementById("paymentDue").value.trim(); 
-        const amt = document.getElementById("paymentAmount").value.trim(); 
-        if (!first || !second || !paymentDue || !amt) {
-            showCustomAlert("所有條碼相關欄位皆為必填！");
-            return false;
-        }
-        return true;
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('loginBtn').addEventListener('click', login);
-        document.getElementById('registerBtn').addEventListener('click', register);
-        document.getElementById('barcodeForm').addEventListener('submit', function(event) { event.preventDefault(); handleGenerateClick(); });
-        document.getElementById('downloadAllBtn').addEventListener('click', startDownloadProcess);
-        document.getElementById('backToGeneratorBtn').addEventListener('click', function() {
-            updateQuotaDisplay();
-            setQrCountOptions();
-            updateButtonLabels();
-            showMainAppPage();
-        });
-        document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
-        document.getElementById('registerBackToLoginBtn').addEventListener('click', showLogin);
-        document.getElementById('showForgotBtn').addEventListener('click', showForgotBox);
-        document.getElementById('forgotBackBtn').addEventListener('click', hideForgotBox);
-        document.getElementById('forgotSendBtn').addEventListener('click', forgotPassword);
-        document.getElementById('verifyBtn').addEventListener('click', verifyCode);
-        document.getElementById('resendCodeBtn').addEventListener('click', resendCode);
-        document.getElementById('verifyBackToLoginBtn').addEventListener('click', showLogin);
-        document.getElementById('showProfileBtn').addEventListener('click', showProfile);
-        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-        document.getElementById('cancelProfileBtn').addEventListener('click', hideProfile);
-        document.getElementById('adminBtn').addEventListener('click', showAdminPanel);
-        document.getElementById('cancelAdminBtn').addEventListener('click', hideAdminPanel);
-        document.getElementById('addRowBtn').addEventListener('click', addSerialRow);
-        document.getElementById('saveSerialsBtn').addEventListener('click', saveSerialCodes);
-        document.getElementById('serialTableBody').addEventListener('click', function(event) { if (event.target.classList.contains('delete-row-btn')) { deleteSerialRow(event.target); } });
-        document.getElementById('userAdminBtn').addEventListener('click', showUserAdminPanel);
-        document.getElementById('saveUsersBtn').addEventListener('click', saveUsersByAdmin);
-        document.getElementById('cancelUserAdminBtn').addEventListener('click', hideUserAdminPanel);
-        document.getElementById('bankSelect').addEventListener('change', onBankSelectChange);
-        document.getElementById('qrCount').addEventListener('change', updateButtonLabels);
-        document.getElementById('amountIncrementType').addEventListener('change', function() {
-        document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
-        });
-        
-        loadBankSelect();
-        setQrCountOptions();
-        updateButtonLabels();
+    const msgDiv = document.getElementById('userAdminMsg');
+    msgDiv.innerText = '儲存中...';
+    const tableRows = document.querySelectorAll('#userTableBody tr');
+    const usersData = Array.from(tableRows).map(row => {
+    const userId = parseInt(row.dataset.userId, 10);
+    const accountValue = row.cells[0].innerText;
+    const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
+    const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
+    const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
+    return { id: userId, account: accountValue, permission: permissionValue, current_quota: currentQuotaValue, reset_quota: resetQuotaValue };
     });
-  </script>
-  </body>
-</html>
+    callApi('admin', 'updateUsers', usersData)
+    .then(res => {
+    if (res.success) {
+    msgDiv.innerText = res.message;
+    setTimeout(() => {
+    msgDiv.innerText = '';
+    if (currentUserProfile) {
+    const updatedProfile = usersData.find(user => user.account === currentUserProfile.account);
+    if (updatedProfile) { currentUserProfile.current_quota = updatedProfile.current_quota; }
+    }
+    loadUsersForAdmin();
+    }, 2000);
+    }
+    })
+    .catch(err => {
+    msgDiv.innerText = '儲存失敗: ' + err.message;
+    });
+    }
+
+    function updateButtonLabels() {
+    const countInput = document.getElementById('qrCount');
+    if (countInput && countInput.value) {
+    const count = parseInt(countInput.value, 10) || 1;
+    document.getElementById("generateBtn").textContent = `條碼產生器 (${count})`;
+    }
+    }
+
+    function generateRequestKey() {
+    const dataToEncode = [
+    document.getElementById('firstBarcode').value.trim(),
+    document.getElementById('secondBarcode').value.trim(),
+    document.getElementById("paymentDue").value.trim(),
+    document.getElementById("paymentAmount").value.trim(),
+    document.getElementById('qrCount').value
+    ].join('|');
+    try {
+    return btoa(encodeURIComponent(dataToEncode));
+    } catch (e) {
+    console.error("btoa encoding failed:", e);
+    return `fallback_${new Date().getTime()}`;
+    }
+    }
+
+    function validateInputs() {
+    const first = document.getElementById('firstBarcode').value.trim();
+    const second = document.getElementById('secondBarcode').value.trim();
+    const paymentDue = document.getElementById("paymentDue").value.trim();
+    const amt = document.getElementById("paymentAmount").value.trim();
+    if (!first || !second || !paymentDue || !amt) {
+    showCustomAlert("所有條碼相關欄位皆為必填！");
+    return false;
+    }
+    return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('loginBtn').addEventListener('click', login);
+    document.getElementById('registerBtn').addEventListener('click', register);
+    document.getElementById('barcodeForm').addEventListener('submit', function(event) { event.preventDefault(); handleGenerateClick(); });
+    document.getElementById('downloadAllBtn').addEventListener('click', startDownloadProcess);
+    document.getElementById('backToGeneratorBtn').addEventListener('click', function() {
+    updateQuotaDisplay();
+    setQrCountOptions();
+    updateButtonLabels();
+    showMainAppPage();
+    });
+    document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
+    document.getElementById('registerBackToLoginBtn').addEventListener('click', showLogin);
+    document.getElementById('showForgotBtn').addEventListener('click', showForgotBox);
+    document.getElementById('forgotBackBtn').addEventListener('click', hideForgotBox);
+    document.getElementById('forgotSendBtn').addEventListener('click', forgotPassword);
+    document.getElementById('verifyBtn').addEventListener('click', verifyCode);
+    document.getElementById('resendCodeBtn').addEventListener('click', resendCode);
+    document.getElementById('verifyBackToLoginBtn').addEventListener('click', showLogin);
+    document.getElementById('showProfileBtn').addEventListener('click', showProfile);
+    document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('cancelProfileBtn').addEventListener('click', hideProfile);
+    document.getElementById('adminBtn').addEventListener('click', showAdminPanel);
+    document.getElementById('cancelAdminBtn').addEventListener('click', hideAdminPanel);
+    document.getElementById('addRowBtn').addEventListener('click', addSerialRow);
+    document.getElementById('saveSerialsBtn').addEventListener('click', saveSerialCodes);
+    document.getElementById('serialTableBody').addEventListener('click', function(event) { if (event.target.classList.contains('delete-row-btn')) { deleteSerialRow(event.target); } });
+    document.getElementById('userAdminBtn').addEventListener('click', showUserAdminPanel);
+    document.getElementById('saveUsersBtn').addEventListener('click', saveUsersByAdmin);
+    document.getElementById('cancelUserAdminBtn').addEventListener('click', hideUserAdminPanel);
+    document.getElementById('bankSelect').addEventListener('change', onBankSelectChange);
+    document.getElementById('qrCount').addEventListener('change', updateButtonLabels);
+    document.getElementById('amountIncrementType').addEventListener('change', function() {
+    document.getElementById('customIncrementAmount').style.display = (this.value === 'custom') ? 'block' : 'none';
+    });
+
+    loadBankSelect();
+    setQrCountOptions();
+    updateButtonLabels();
+    });
+    </script>
+
+    </body>
+    </html>
