@@ -87,18 +87,26 @@ async function handleForgotPassword(data) {
 async function handleGetProfile(headers) {
   const token = headers.authorization?.split(' ')[1];
   if (!token) return { error: '未提供授權 Token。' };
-  const decodedUser = jwt.verify(token, JWT_SECRET);
-  const userId = decodedUser.userId;
-  const { data: userData, error } = await supabase.from('users').select('*').eq('id', userId).single();
-  if (error) return { error: '找不到使用者' };
-  return {
-    account: userData.account,
-    email: userData.email,
-    current_quota: userData.current_quota,
-    register_date: userData.register_date,
-    last_modified: userData.last_modified,
-    isAdmin: userData.is_admin === true
-  };
+
+  try {
+    const decodedUser = jwt.verify(token, JWT_SECRET);
+    const userId = decodedUser.userId;
+
+    const { data: userData, error } = await supabase.from('users').select('*').eq('id', userId).single();
+    if (error) return { error: '找不到使用者' };
+
+    return {
+      account: userData.account,
+      email: userData.email,
+      current_quota: userData.current_quota,
+      register_date: userData.register_date,
+      last_modified: userData.last_modified,
+      isAdmin: userData.is_admin === true
+    };
+  } catch (err) {
+    console.error('處理 getProfile 時發生錯誤:', err);
+    return { error: '無法解碼 Token 或查詢使用者資料' };
+  }
 }
 async function handleUpdateProfile(data, headers) {
   const token = headers.authorization?.split(' ')[1];
@@ -138,7 +146,8 @@ export default async function handler(request, response) {
       return response.status(405).json({ message: 'Method Not Allowed' });
     }
   } catch (error) {
+    console.error('API 處理錯誤:', error);
     return response.status(500).json({ error: error.message });
   }
 }
-    
+
