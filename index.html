@@ -778,7 +778,7 @@
         // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
             const userId = parseInt(row.dataset.userId, 10);
-            const accountValue = row.cells[0].innerText;
+            const accountValue = row.cells[0].innerText.trim();
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
@@ -798,7 +798,7 @@
         };
 
         // 步驟 6: 使用 fetch 函式，向後端 /api/admin/updateUsers 發送一個 POST 請求
-        fetch('/api/admin/updateUsers', {
+        fetch('/api/admin/users', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(usersData) // 將整個使用者資料陣列作為 body 發送
