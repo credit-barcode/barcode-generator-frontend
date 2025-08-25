@@ -768,63 +768,47 @@
     // index.html 中的 saveUsersByAdmin (最終完整版)
 
     function saveUsersByAdmin() {
-        // 步驟 1: 獲取訊息顯示區塊，並更新 UI 提示為「儲存中...」
-        const msgDiv = document.getElementById('userAdminMsg');
-        msgDiv.innerText = '儲存中...';
-        
-        // 步驟 2: 獲取表格中的所有資料列
-        const tableRows = document.querySelectorAll('#userTableBody tr');
-        
-        // 步驟 3: 遍歷每一行，收集使用者修改後的資料
-        const usersData = Array.from(tableRows).map(row => {
-            const userId = row.dataset.userId ? parseInt(row.dataset.userId, 10) : null;
-            const accountValue = row.cells[0].innerText.trim();
-            const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
-            const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
-            const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
-            return {
-                id: userId,
-                account: accountValue,
-                permission: permissionValue,
-                current_quota: currentQuotaValue,
-                reset_quota: resetQuotaValue
-            };
-        }).filter(user => user.id !== null); // 確保 id 不為 null
+      const tableBody = document.getElementById('userTableBody');
+      const rows = tableBody.querySelectorAll('tr');
+      const users = [];
 
-        console.log('發送的使用者資料:', JSON.stringify(usersData, null, 2)); // 調試代碼
+      rows.forEach(row => {
+        const id = row.dataset.id;
+        const account = row.querySelector('td:nth-child(1)').textContent.trim();
+        const permission = row.querySelector('td:nth-child(2) input[type="checkbox"]').checked;
+        const currentQuota = parseInt(row.querySelector('td:nth-child(3) input').value, 10) || 0;
+        const resetQuota = parseInt(row.querySelector('td:nth-child(4) input').value, 10) || 0;
 
-        // 步驟 5: 準備請求標頭，附上 JWT Token
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        };
+        if (id) {
+          users.push({ id: parseInt(id, 10), account, permission, current_quota: currentQuota, reset_quota: resetQuota });
+        }
+      });
 
-        // 步驟 6: 使用 fetch 函式，向後端 /api/admin/updateUsers 發送一個 POST 請求
-        fetch('/api/admin/users', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(usersData) // 將整個使用者資料陣列作為 body 發送
-        })
+      console.log('準備發送的使用者資料:', JSON.stringify(users, null, 2));
+
+      callApi('admin/users', null, users)
         .then(response => {
-            return response.json().then(json => {
-                if (!response.ok) throw new Error(json.message || `伺服器回傳 ${response.status}`);
-                return json;
+          console.log('後端回應成功:', response);
+          document.getElementById('userAdminMsg').innerText = '儲存成功';
+
+          // 重新同步使用者資料
+          callApi('auth', 'getProfile')
+            .then(profile => {
+              currentUserProfile = profile;
+              updateQuotaDisplay();
+              console.log('使用者資料已更新:', profile);
+            })
+            .catch(err => {
+              console.error('重新獲取個人資料失敗:', err);
+              document.getElementById('userAdminMsg').innerText = '無法同步最新資料，顯示的可能為舊額度。';
             });
         })
-        .then(res => {
-            // 步驟 7: 處理後端回傳的成功回應
-            if (res.success) {
-                msgDiv.innerText = res.message;
-                // 成功後，短暫顯示訊息，然後重新載入列表以確認變更
-                setTimeout(() => { 
-                    msgDiv.innerText = '';
-                    loadUsersForAdmin(); 
-                }, 2000);
-            }
-        })
-        .catch(err => {
-            // 步驟 8: 處理後端回傳的錯誤回應
-            msgDiv.innerText = '儲存失敗: ' + err.message;
+        .catch(error => {
+          console.error('儲存失敗:', error);
+          if (error.json) {
+            console.error('後端回應錯誤內容:', error.json);
+          }
+          document.getElementById('userAdminMsg').innerText = `儲存失敗: ${error.message}`;
         });
     }
 
