@@ -777,7 +777,7 @@
         
         // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
-            const userId = parseInt(row.dataset.userId, 10);
+            const userId = row.dataset.userId ? parseInt(row.dataset.userId, 10) : null;
             const accountValue = row.cells[0].innerText.trim();
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
@@ -789,7 +789,7 @@
                 current_quota: currentQuotaValue,
                 reset_quota: resetQuotaValue
             };
-        });
+        }).filter(user => user.id !== null); // 確保 id 不為 null
 
         // 步驟 5: 準備請求標頭，附上 JWT Token
         const headers = {
