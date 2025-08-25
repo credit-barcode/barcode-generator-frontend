@@ -67,11 +67,11 @@ async function handleGenerateBarcodes(data) {
   }
   
   const initialAmount = parseInt(paymentAmount, 10);
-    /*
-  if (initialAmount < 5) {
-    throw new Error("繳費金額最低只能設定 5 元。");
+
+  // 【核心新增】檢查繳費金額是否小於等於 0
+  if (initialAmount <= 0) {
+    throw new Error("本期帳單金額為 0 元，無需繳費，感謝您的使用。");
   }
-  */
 
   let allData = [];
   let currentDate = rocStringToDate_(paymentDue);
@@ -163,9 +163,16 @@ export default async function handler(request, response) {
 
   } catch (error) {
     console.error(`條碼 API 錯誤 (action: ${request.body.action}):`, error);
+    
+    // 【核心修正】讓後端能回傳 400 狀態碼給前端
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return response.status(403).json({ message: '無效或過期的 Token。' });
     }
+    // 如果是我們自訂的 0 元錯誤，回傳 400 Bad Request
+    if (error.message.includes("本期帳單金額為 0 元")) {
+        return response.status(400).json({ message: error.message });
+    }
+    
     return response.status(500).json({ message: error.message });
   }
 }
