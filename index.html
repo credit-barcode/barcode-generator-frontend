@@ -791,6 +791,8 @@
             };
         }).filter(user => user.id !== null); // 確保 id 不為 null
 
+        console.log('發送的使用者資料:', JSON.stringify(usersData, null, 2)); // 調試代碼
+
         // 步驟 5: 準備請求標頭，附上 JWT Token
         const headers = {
             'Content-Type': 'application/json',
