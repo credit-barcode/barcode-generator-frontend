@@ -195,7 +195,7 @@
     <p style="margin-top: 0.0em;">⚠️風險需由您自行承擔!請小心使用</p>
     </div>
     <div style="font-size:0.95em;color:#555;margin-bottom:16px;">
-    註解1. LINE內建瀏覽器，會導致部分功能無法操作。<br>
+    註解1. 內建瀏覽器，會導致部分功能無法操作。<br>
     註解2. 前4碼「年+月」有國泰、富邦、聯邦<br>
     註解3. 前4碼「月+日」有玉山、台新、台銀
     </div>
@@ -522,7 +522,7 @@
 
     function handleGenerateClick() { 
     if (!validateInputs()) return;
-    showCustomAlert("正在後端計算條碼，請稍候...");
+    showCustomAlert("請稍候...");
     const incrementType = document.getElementById('amountIncrementType').value;
     const incrementAmount = (incrementType === 'custom') ? (parseInt(document.getElementById('customIncrementAmount').value, 10) || 0) : parseInt(incrementType, 10);
     const params = {
@@ -545,9 +545,19 @@
     showPreviewPage();
     })
     .catch(error => {
-    closeCustomAlert();
-    showCustomAlert("處理失敗：<br>" + error.message);
-    });
+            // ▼▼▼ 【核心修正】優化錯誤訊息顯示 ▼▼▼
+            closeCustomAlert();
+            
+            // 檢查錯誤訊息是否是我們後端自訂的、對使用者友善的訊息
+            if (error.message.includes("本期帳單金額為 0 元")) {
+                // 如果是，就直接顯示該訊息，不加任何前綴
+                showCustomAlert(error.message);
+            } else {
+                // 如果是其他非預期的錯誤，才加上「處理失敗：」的前綴
+                showCustomAlert("處理失敗：<br>" + error.message);
+            }
+            // ▲▲▲ 【核心修正】 ▲▲▲
+        });
     }
 
     function generatePreviewUI() {
