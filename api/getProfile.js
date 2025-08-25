@@ -10,6 +10,7 @@ export default async function handler(request, response) {
   if (request.method !== 'GET') {
     return response.status(405).json({ message: 'Method Not Allowed' });
   }
+
   try {
     const token = request.headers.authorization?.split(' ')[1];
     if (!token) return response.status(401).json({ message: '未提供授權 Token。' });
@@ -18,19 +19,19 @@ export default async function handler(request, response) {
     const userId = decodedUser.userId;
 
     const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
     if (error) throw error;
 
     const userProfile = {
-        account: userData.account,
-        email: userData.email,
-        current_quota: userData.current_quota,
-        register_date: userData.register_date,
-        last_modified: userData.last_modified,
-        isAdmin: userData.is_admin === true
+      account: userData.account,
+      email: userData.email,
+      current_quota: userData.current_quota,
+      register_date: userData.register_date,
+      last_modified: userData.last_modified,
+      isAdmin: userData.is_admin === true
     };
     
     return response.status(200).json(userProfile);

@@ -673,50 +673,47 @@
     loadUsersForAdmin();
     }
 
-// index.html 中的 hideUserAdminPanel (最終修正版)
-function hideUserAdminPanel() {
-    document.getElementById('userAdminPanel').style.display = 'none';
-    showCustomAlert('正在更新您的最新資訊...');
+    function hideUserAdminPanel() {
+      document.getElementById('userAdminPanel').style.display = 'none';
+      showCustomAlert('正在更新您的最新資訊...');
 
-    const headers = {};
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      const headers = {};
+      const token = localStorage.getItem('authToken');
+      if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // ▼▼▼ 【核心修正】將路徑指向獨立的 /api/getProfile 檔案 ▼▼▼
+      fetch('/api/getProfile', {
+          method: 'GET', // 確保使用 GET 方法
+          headers: headers
+      })
+      .then(response => {
+          if (!response.ok) {
+              return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
+          }
+          return response.json();
+      })
+      .then(latestProfile => {
+          closeCustomAlert();
+          // 用最新的資料【覆蓋】掉舊的全域變數
+          currentUserProfile = latestProfile;
+          
+          // 【重要】用最新的資料，手動更新一次主頁面的所有相關 UI
+          updateQuotaDisplay();
+          setQrCountOptions();
+          updateButtonLabels();
+          
+          // 最後才顯示主頁面
+          showMainAppPage();
+      })
+      .catch(err => {
+          console.error("重新獲取個人資料失敗:", err);
+          closeCustomAlert();
+          showCustomAlert("無法同步最新資料，顯示的可能為舊額度。");
+          showMainAppPage();
+      });
     }
-
-    // ▼▼▼ 【核心修正】將路徑指向獨立的 /api/getProfile 檔案 ▼▼▼
-    fetch('/api/getProfile', {
-        method: 'GET', // 確保使用 GET 方法
-        headers: headers
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
-        }
-        return response.json();
-    })
-    .then(latestProfile => {
-        closeCustomAlert();
-        // 用最新的資料【覆蓋】掉舊的全域變數
-        currentUserProfile = latestProfile;
-        
-        // 【重要】用最新的資料，手動更新一次主頁面的所有相關 UI
-        updateQuotaDisplay();
-        setQrCountOptions();
-        updateButtonLabels();
-        
-        // 最後才顯示主頁面
-        showMainAppPage();
-    })
-    .catch(err => {
-        console.error("重新獲取個人資料失敗:", err);
-        closeCustomAlert();
-        showCustomAlert("無法同步最新資料，顯示的可能為舊額度。");
-        showMainAppPage();
-    });
-}
-
-        // index.html 中的 loadUsersForAdmin (最終完整版)
 
         // index.html 中的 loadUsersForAdmin (最終完整版)
 
