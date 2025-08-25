@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>繳費條碼</title>
+  
+  <!-- ▼▼▼ 【核心新增】載入 Cloudflare Turnstile 的腳本 ▼▼▼ -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <!-- ▲▲▲ 【核心新增】 ▲▲▲ -->
+
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; padding: 1rem; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f4f4f4; }
@@ -63,12 +68,54 @@
     #userTable input[type="checkbox"] { width: 20px; height: 20px; }
     #serialTable .delete-row-btn { background-color: #f44336; color: white; border: none; padding: 6px 10px; cursor: pointer; border-radius: 4px; }
     .admin-button-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: 1rem; }
+    .cf-turnstile { margin-bottom: 1rem; }
   </style>
 </head>
 <body>
 
-  <div id="loginBox"><h3>請先登入</h3><div class="form-group"><input id="loginAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input type="password" id="loginPassword" placeholder="密碼" /></div><button id="loginBtn">登入</button><button type="button" id="showRegisterBtn" style="background-color:#6c757d;">註冊</button><button type="button" id="showForgotBtn" style="background-color:#ffc107;color:#212529;">忘記密碼</button><div id="loginMsg"></div></div>
-  <div id="registerBox" style="display:none;"><h3>註冊新帳號</h3><div class="form-group"><input id="registerAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input type="password" id="registerPassword" placeholder="請輸入密碼" /><small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small></div><div class="form-group"><input id="registerEmail" type="email" placeholder="信箱" /></div><div class="form-group"><input id="registerSerial" type="text" placeholder="註冊碼" /></div><button id="registerBtn">確定註冊</button><button id="registerBackToLoginBtn" style="background-color:#6c757d;">返回登入</button><div id="registerMsg"></div></div>
+  <div id="loginBox">
+    <h3>請先登入</h3>
+    <div class="form-group">
+      <input id="loginAccount" type="text" placeholder="帳號" />
+    </div>
+    <div class="form-group">
+        <input type="password" id="loginPassword" placeholder="密碼" />
+    </div>
+    <button id="loginBtn">登入</button>
+    <button type="button" id="showRegisterBtn" style="background-color:#6c757d;">註冊</button>
+    <button type="button" id="showForgotBtn" style="background-color:#ffc107;color:#212529;">忘記密碼</button>
+    <div id="loginMsg"></div>
+  </div>
+
+  <div id="registerBox" style="display:none;">
+    <h3>註冊新帳號</h3>
+    <div class="form-group">
+      <input id="registerAccount" type="text" placeholder="帳號" />
+    </div>
+    <div class="form-group">
+      <input type="password" id="registerPassword" placeholder="請輸入密碼" />
+      <small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small>
+    </div>
+    <div class="form-group">
+      <input id="registerEmail" type="email" placeholder="信箱" />
+    </div>
+    <div class="form-group">
+      <input id="registerSerial" type="text" placeholder="註冊碼" />
+    </div>
+    
+    <!-- ▼▼▼ 【核心新增】Turnstile 小工具容器 ▼▼▼ -->
+    <!-- 【重要】請務必將 data-sitekey 的值替換為您自己的 Site Key -->
+    <div class="cf-turnstile" 
+         data-sitekey="請替換為您的SiteKey" 
+         data-callback="onTurnstileSuccess">
+    </div>
+    <!-- ▲▲▲ 【核心新增】▲▲▲ -->
+
+    <button id="registerBtn" disabled>確定註冊</button>
+    <button id="registerBackToLoginBtn" style="background-color:#6c757d;">返回登入</button>
+    <div id="registerMsg"></div>
+  </div>
+
   <div id="verifyBox" style="display:none;"><h3>請驗證您的信箱</h3><p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p><div class="form-group"><input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" /></div><button id="verifyBtn">驗證</button><button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button><button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button><div id="verifyMsg"></div></div>
   <div id="legacyVerifyBox" style="display:none;"><h3>系統更新 - 請驗證信箱</h3><p style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;">為提升帳戶安全，我們需要您完成信箱驗證。請確認或修改您的信箱，我們將發送一組驗證碼給您。</p><div class="form-group"><input id="legacyEmail" type="email" placeholder="請確認或輸入新信箱" /></div><button id="legacySendBtn">發送驗證碼</button><button id="legacyLaterBtn" style="background-color:#6c757d;">稍後再說</button><div id="legacyVerifyMsg"></div></div>
   <div id="forgotBox" style="display:none;"><h3>忘記密碼</h3><div class="form-group" style="margin-bottom:8px;"><input id="forgotAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input id="forgotEmail" type="email" placeholder="註冊信箱" /></div><button id="forgotSendBtn">寄送密碼提示</button><button id="forgotBackBtn" style="background-color:#6c757d;">返回</button><div id="forgotMsg"></div></div>
@@ -84,7 +131,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-    <script>
+  <script>
     // ▼▼▼ 第一部分：所有函式定義 ▼▼▼
 
     // ▼ 全域變數 ▼
@@ -94,29 +141,29 @@
     let currentBatchRequestKey = null;
 
     /** @typedef {Error & {json?: object}} ApiError */
+    function callApi(endpoint, action, data = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-    /**
-     * 【核心】向 Vercel 後端 API 發送請求的統一函式
-     * @param {string} endpoint - API 的路徑名稱 (例如 'auth', 'admin/users')
-     * @param {object} [options={}] - fetch 的設定選項，例如 method, body
-     * @returns {Promise<any>}
-     */
-    function callApi(endpoint, options = {}) {
-        const token = localStorage.getItem('authToken');
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+      if (endpoint === 'admin' && (action === 'getUsers' || action === 'getSerials')) {
+          return fetch(`/api/admin/${action.replace('get', '').toLowerCase()}`, {
+              method: 'GET',
+              headers: headers
+          }).then(handleResponse);
+      }
+      
+      const body = (action) ? JSON.stringify({ action: action, ...data }) : JSON.stringify(data);
 
-        return fetch(`/api/${endpoint}`, { ...options, headers }).then(handleResponse);
+      return fetch(`/api/${endpoint}`, {
+        method: 'POST',
+        headers: headers,
+        body: body
+      }).then(handleResponse);
     }
-
-    /**
-     * 共用的 fetch 回應處理函式
-     */
+    
     function handleResponse(response) {
         return response.json().then(json => {
             if (!response.ok) {
@@ -188,6 +235,19 @@
         document.getElementById('customAlert').style.display = 'none'; 
     }
 
+    // ▼▼▼ 【核心新增】Turnstile 成功後的回呼函式 ▼▼▼
+    /**
+     * 當 Cloudflare Turnstile 驗證成功時，會自動呼叫此函式。
+     * 它的作用是將「確定註冊」按鈕從禁用狀態啟用。
+     */
+    function onTurnstileSuccess() {
+        const registerBtn = document.getElementById('registerBtn');
+        if (registerBtn) {
+            registerBtn.disabled = false;
+        }
+    }
+    // ▲▲▲ 【核心新增】 ▲▲▲
+
     // ▼ 核心功能函式 ▼
     function register() {
         const account = document.getElementById('registerAccount').value.trim();
@@ -195,13 +255,29 @@
         const email = document.getElementById('registerEmail').value.trim();
         const serial = document.getElementById('registerSerial').value.trim();
         const msgDiv = document.getElementById('registerMsg');
+        
+        // ▼▼▼ 【核心新增】獲取 Turnstile Token ▼▼▼
+        const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]');
+        const token = turnstileResponse ? turnstileResponse.value : null;
+        if (!token) {
+            msgDiv.innerText = '請完成人機驗證。';
+            return;
+        }
+        // ▲▲▲ 【核心新增】 ▲▲▲
+        
         msgDiv.innerText = '';
-        if (!account || !password || !email || !serial) { msgDiv.innerText = '所有欄位皆為必填'; return; }
-        if (!validatePassword(password)) { msgDiv.innerText = '密碼格式不符，請確認格式'; return; }
+        if (!account || !password || !email || !serial) { 
+            msgDiv.innerText = '所有欄位皆為必填';
+            return; 
+        }
+        if (!validatePassword(password)) { 
+            msgDiv.innerText = '密碼格式不符，請確認格式';
+            return; 
+        }
         msgDiv.innerText = '註冊中...';
         
-        const data = { action: 'register', username: account, password, email, serial };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        // 將 token 一起發送到後端
+        callApi('auth', 'register', { username: account, password, email, serial, token: token })
             .then(res => {
                 if (res.result === 'success_pending_verification') {
                     msgDiv.innerText = '';
@@ -211,7 +287,14 @@
                     document.getElementById('verifyInfoMsg').innerHTML = `我們已將一組 6 位數驗證碼寄送到 <strong style=\"color: #007bff;\">${email}</strong>，<br>請在 10 分鐘內輸入以完成驗證。`;
                 }
             })
-            .catch(err => { msgDiv.innerText = err.message; });
+            .catch(err => {
+                msgDiv.innerText = err.message;
+                // 如果註冊失敗，重設 Turnstile 以便使用者重試
+                if (window.turnstile) {
+                    window.turnstile.reset();
+                    document.getElementById('registerBtn').disabled = true; // 重新禁用按鈕
+                }
+            });
     }
     
     function login() {
@@ -220,8 +303,7 @@
         if (!account || !password) { document.getElementById('loginMsg').innerText = '帳號和密碼不能為空'; return; }
         document.getElementById('loginMsg').innerText = '登入中...';
         
-        const data = { action: 'login', account, password };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        callApi('auth', 'login', { account, password })
             .then(res => {
                 if (res.success && res.token) {
                     localStorage.setItem('authToken', res.token);
@@ -259,7 +341,13 @@
     }
 
     function loadBankSelect() {
-      callApi('banks', { method: 'GET' })
+      fetch('/api/getBanks')
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || '無法從伺服器獲取銀行列表。') });
+          }
+          return response.json();
+        })
         .then(banks => {
           const select = document.getElementById('bankSelect');
           const otherOption = select.querySelector('option[value="other"]'); 
@@ -294,8 +382,7 @@
             incrementAmount: incrementAmount,
             requestKey: generateRequestKey()
         };
-        const data = { action: 'generate', ...params };
-        callApi('barcodes', { method: 'POST', body: JSON.stringify(data) })
+        callApi('barcodes', 'generate', params)
             .then(backendResult => {
                 closeCustomAlert();
                 generatedBarcodeData = backendResult.barcodes;
@@ -381,8 +468,7 @@
             const includeReminder = document.getElementById('includeReminderForDownload').checked;
             closeCustomAlert();
             showCustomAlert("正在與伺服器確認額度...");
-            const data = { action: 'deduct', countToDeduct: qrCount, requestKey: currentBatchRequestKey };
-            callApi('barcodes', { method: 'POST', body: JSON.stringify(data) })
+            callApi('barcodes', 'deduct', { countToDeduct: qrCount, requestKey: currentBatchRequestKey })
                 .then(res => {
                     if (res.success) {
                         currentUserProfile.current_quota = res.newQuota;
@@ -441,8 +527,7 @@
         msgDiv.innerText = '';
         if (!code || code.length !== 6) { msgDiv.innerText = '請輸入 6 位數驗證碼。'; return; }
         msgDiv.innerText = '驗證中...';
-        const data = { action: 'verifyCode', account: accountToVerify, code: code };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        callApi('auth', 'verifyCode', { account: accountToVerify, code: code })
             .then(res => {
                 if (res.success) {
                     msgDiv.innerText = '';
@@ -462,8 +547,7 @@
     function resendCode() {
         const msgDiv = document.getElementById('verifyMsg');
         msgDiv.innerText = '正在重新寄送...';
-        const data = { action: 'resendCode', account: accountToVerify };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        callApi('auth', 'resendCode', { account: accountToVerify })
             .then(res => {
                 if (res.success) {
                     msgDiv.innerText = '';
@@ -514,8 +598,7 @@
         const msgDiv = document.getElementById('forgotMsg');
         if (!email) { msgDiv.innerText = '請輸入您註冊時使用的電子信箱'; return; }
         msgDiv.innerText = '處理中...'; 
-        const data = { action: 'forgotPassword', email: email };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        callApi('auth', 'forgotPassword', { email: email })
             .then(res => {
                 msgDiv.innerText = '';
                 showCustomAlert(res.message);
@@ -563,8 +646,7 @@
         if (newPassword && !validatePassword(newPassword)) { profileMsg.textContent = '新密碼格式不符合要求。'; return; }
         if (!newPassword) { profileMsg.textContent = '資料未變更。'; setTimeout(hideProfile, 1500); return; }
         profileMsg.textContent = '儲存中...';
-        const data = { action: 'updateProfile', currentPassword, newPassword: newPassword || null };
-        callApi('auth', { method: 'POST', body: JSON.stringify(data) })
+        callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null })
             .then(res => {
                 if (res.success) {
                     profileMsg.textContent = res.message;
@@ -593,7 +675,12 @@
     function loadSerialCodes() {
         const tbody = document.getElementById('serialTableBody');
         tbody.innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
-        callApi('admin/serials', { method: 'GET' })
+        const headers = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        fetch('/api/admin/serials', { method: 'GET', headers: headers })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
+            return response.json();
+        })
         .then(serials => {
             tbody.innerHTML = '';
             if (serials && serials.length > 0) {
@@ -618,7 +705,13 @@
             }
             return null;
         }).filter(Boolean);
-        callApi('admin/serials', { method: 'POST', body: JSON.stringify(serialsData) })
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        fetch('/api/admin/serials', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(serialsData)
+        })
+        .then(response => response.json().then(json => { if (!response.ok) throw new Error(json.message); return json; }))
         .then(res => {
             if (res.success) {
                 msgDiv.innerText = res.message;
@@ -651,8 +744,14 @@
     function hideUserAdminPanel() {
         document.getElementById('userAdminPanel').style.display = 'none';
         showCustomAlert('正在更新您的最新資訊...');
-        
-        callApi('getProfile', { method: 'GET' })
+        const headers = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        fetch('/api/getProfile', { method: 'GET', headers: headers })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errBody => { throw new Error(errBody.message || `伺服器回傳 ${response.status}`) });
+            }
+            return response.json();
+        })
         .then(latestProfile => {
             closeCustomAlert();
             currentUserProfile = latestProfile;
@@ -672,7 +771,12 @@
     function loadUsersForAdmin() {
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
-        callApi('admin/users', { method: 'GET' })
+        const headers = { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        fetch('/api/admin/users', { method: 'GET', headers: headers })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
+            return response.json();
+        })
         .then(users => {
             tbody.innerHTML = '';
             if (users && users.length > 0) {
@@ -709,7 +813,12 @@
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
             return { id: userId, account: accountValue, permission: permissionValue, current_quota: currentQuotaValue, reset_quota: resetQuotaValue };
         });
-        callApi('admin/users', { method: 'POST', body: JSON.stringify(usersData) })
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
+        fetch('/api/admin/users', { method: 'POST', headers: headers, body: JSON.stringify(usersData) })
+        .then(response => {
+            if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
+            return response.json();
+        })
         .then(res => {
             if (res.success) {
                 msgDiv.innerText = res.message;
