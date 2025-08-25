@@ -617,76 +617,76 @@
         document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
 
-// index.html 中的 showProfile (最終版)
-function showProfile() {
-    if (!currentUserProfile) {
-        showCustomAlert("無法獲取會員資料，請重新登入。");
-        return;
-    }
-    document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
-    document.getElementById('profileEmail').value = currentUserProfile.email || '';
-    document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
-    const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
-    const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
-    document.getElementById('profileRegisterDate').textContent = registerDate;
-    document.getElementById('profileLastModified').textContent = lastModified;
-    
-    document.getElementById('profilePassword').value = '';
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('profileMsg').textContent = '';
+    // index.html 中的 showProfile (最終版)
+    function showProfile() {
+        if (!currentUserProfile) {
+            showCustomAlert("無法獲取會員資料，請重新登入。");
+            return;
+        }
+        document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
+        document.getElementById('profileEmail').value = currentUserProfile.email || '';
+        document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
+        const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
+        const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
+        document.getElementById('profileRegisterDate').textContent = registerDate;
+        document.getElementById('profileLastModified').textContent = lastModified;
+        
+        document.getElementById('profilePassword').value = '';
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('profileMsg').textContent = '';
 
-    showLogin();
-    document.getElementById('loginBox').style.display = 'none';
-    document.getElementById('profileBox').style.display = 'flex';
-}
-
-// index.html 中的 saveProfile (最終版)
-function saveProfile() {
-    const currentPassword = document.getElementById('currentPassword').value;
-    const newPassword = document.getElementById('profilePassword').value;
-    const newEmail = document.getElementById('profileEmail').value.trim();
-    const profileMsg = document.getElementById('profileMsg');
-
-    if (!currentPassword) {
-        profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
-        return;
+        showLogin();
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('profileBox').style.display = 'flex';
     }
-    if (newPassword && !validatePassword(newPassword)) {
-        profileMsg.textContent = '新密碼格式不符合要求。';
-        return;
-    }
-    
-    // 檢查是否有任何變更
-    if (!newPassword && newEmail === currentUserProfile.email) {
-        profileMsg.textContent = '資料未變更。';
-        setTimeout(hideProfile, 1500);
-        return;
-    }
-    
-    profileMsg.textContent = '儲存中...';
 
-    callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null, newEmail: newEmail })
-        .then(res => {
-            if (res.success) {
-                profileMsg.textContent = res.message;
-                // 如果密碼或信箱被修改，最好是將使用者登出
-                if (res.passwordChanged || res.emailChanged) {
-                    let alertMessage = "";
-                    if (res.passwordChanged) alertMessage += "密碼已成功更新！\n";
-                    if (res.emailChanged) alertMessage += "信箱已更新，請前往信箱完成重新驗證。\n";
-                    alertMessage += "為了安全，系統將為您登出。";
-                    
-                    showCustomAlert(alertMessage);
-                    setTimeout(logout, 3000); 
-                } else {
-                    setTimeout(hideProfile, 1500);
+    // index.html 中的 saveProfile (最終版)
+    function saveProfile() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('profilePassword').value;
+        const newEmail = document.getElementById('profileEmail').value.trim();
+        const profileMsg = document.getElementById('profileMsg');
+
+        if (!currentPassword) {
+            profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
+            return;
+        }
+        if (newPassword && !validatePassword(newPassword)) {
+            profileMsg.textContent = '新密碼格式不符合要求。';
+            return;
+        }
+        
+        // 檢查是否有任何變更
+        if (!newPassword && newEmail === currentUserProfile.email) {
+            profileMsg.textContent = '資料未變更。';
+            setTimeout(hideProfile, 1500);
+            return;
+        }
+        
+        profileMsg.textContent = '儲存中...';
+
+        callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null, newEmail: newEmail })
+            .then(res => {
+                if (res.success) {
+                    profileMsg.textContent = res.message;
+                    // 如果密碼或信箱被修改，最好是將使用者登出
+                    if (res.passwordChanged || res.emailChanged) {
+                        let alertMessage = "";
+                        if (res.passwordChanged) alertMessage += "密碼已成功更新！\n";
+                        if (res.emailChanged) alertMessage += "信箱已更新，請前往信箱完成重新驗證。\n";
+                        alertMessage += "為了安全，系統將為您登出。";
+                        
+                        showCustomAlert(alertMessage);
+                        setTimeout(logout, 3000); 
+                    } else {
+                        setTimeout(hideProfile, 1500);
+                    }
                 }
-            }
-        })
-        .catch(err => {
-            profileMsg.textContent = '更新失敗：' + err.message;
-        });
-}
+            })
+            .catch(err => {
+                profileMsg.textContent = '更新失敗：' + err.message;
+            });
+    }
 
     function showAdminPanel() {
         showLogin();
