@@ -2,6 +2,9 @@
 // 此檔案整合所有身份驗證功能
 // 檔案路徑: /api/auth.js
 // 從 Supabase、Resend 和各種加密/權杖函式庫中匯入必要的工具
+// 檔案路徑: /api/auth.js
+
+// 從 Supabase、Resend 和各種加密/權杖函式庫中匯入必要的工具
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import bcrypt from 'bcryptjs';
@@ -97,7 +100,7 @@ async function handleLogin(data) {
 
     if (userData.is_verified !== true) {
         const err = new Error('此帳號尚未完成信箱驗證。');
-        err.reason = 'unverified'; // 附加一個特殊原因，供前端判斷
+        err.reason = 'unverified';
         throw err;
     }
     
@@ -242,7 +245,7 @@ async function handleResetPassword(data) {
 
 /**
  * 處理更新個人資料
- * @param {object} data - 包含 currentPassword, newPassword 的物件
+ * @param {object} data - 包含 currentPassword, newPassword, newEmail 的物件
  * @param {object} headers - 來自 Vercel request 的 headers 物件
  */
 async function handleUpdateProfile(data, headers) {
@@ -251,26 +254,53 @@ async function handleUpdateProfile(data, headers) {
     const decodedUser = jwt.verify(token, JWT_SECRET);
     const userId = decodedUser.userId;
 
-    const { currentPassword, newPassword } = data;
+    const { currentPassword, newPassword, newEmail } = data;
     if (!currentPassword) throw new Error('為了安全，請務必輸入您目前的密碼。');
     
-    const { data: userData, error: fetchError } = await supabase.from('users').select('password').eq('id', userId).single();
+    const { data: userData, error: fetchError } = await supabase.from('users').select('password, email').eq('id', userId).single();
     if (fetchError) throw fetchError;
 
     const isPasswordMatch = await bcrypt.compare(currentPassword, userData.password);
     if (!isPasswordMatch) throw new Error('目前的密碼不正確。');
 
     const dataToUpdate = { last_modified: new Date().toISOString() };
+    let responseMessage = '個人資料更新成功！';
+    let emailChanged = false;
+    
     if (newPassword) {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
         if (!passwordRegex.test(newPassword)) throw new Error('新密碼格式不符合要求。');
         dataToUpdate.password = await bcrypt.hash(newPassword, 10);
+        responseMessage = '密碼已成功更新！';
+    }
+
+    if (newEmail && newEmail !== userData.email) {
+        const { data: existingEmail, error: emailCheckError } = await supabase.from('users').select('id').eq('email', newEmail).eq('is_verified', true).single();
+        if (emailCheckError && emailCheckError.code !== 'PGRST116') throw emailCheckError;
+        if (existingEmail) throw new Error('此信箱已被其他帳號使用。');
+
+        const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(new Date().getTime() + 10 * 60 * 1000);
+        
+        dataToUpdate.email = newEmail;
+        dataToUpdate.is_verified = false;
+        dataToUpdate.verify_code = verifyCode;
+        dataToUpdate.verify_expires = expiresAt;
+        emailChanged = true;
+
+        await resend.emails.send({
+            from: 'Barcode App <onboarding@resend.dev>',
+            to: [newEmail],
+            subject: '請驗證您的新電子信箱',
+            html: `<p>您的新驗證碼是：<strong>${verifyCode}</strong></p>`,
+        });
+        responseMessage = '資料已更新，新的驗證信已寄出，請前往信箱完成驗證。';
     }
     
     const { error: updateError } = await supabase.from('users').update(dataToUpdate).eq('id', userId);
     if (updateError) throw updateError;
     
-    return { success: true, message: '個人資料更新成功！' };
+    return { success: true, message: responseMessage, passwordChanged: !!newPassword, emailChanged: emailChanged };
 }
 
 

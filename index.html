@@ -119,7 +119,8 @@
   <div id="verifyBox" style="display:none;"><h3>請驗證您的信箱</h3><p id="verifyInfoMsg" style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;"></p><div class="form-group"><input id="verifyCode" type="text" placeholder="6 位數驗證碼" maxlength="6" /></div><button id="verifyBtn">驗證</button><button type="button" id="resendCodeBtn" style="background-color:#ffc107; color:#212529; font-size: 0.9em;">沒有收到？重新寄送驗證碼</button><button id="verifyBackToLoginBtn" style="background-color:#6c757d;">返回登入</button><div id="verifyMsg"></div></div>
   <div id="legacyVerifyBox" style="display:none;"><h3>系統更新 - 請驗證信箱</h3><p style="color:#333; font-weight:normal; font-size: 0.9em; line-height: 1.5; margin-bottom: 18px;">為提升帳戶安全，我們需要您完成信箱驗證。請確認或修改您的信箱，我們將發送一組驗證碼給您。</p><div class="form-group"><input id="legacyEmail" type="email" placeholder="請確認或輸入新信箱" /></div><button id="legacySendBtn">發送驗證碼</button><button id="legacyLaterBtn" style="background-color:#6c757d;">稍後再說</button><div id="legacyVerifyMsg"></div></div>
   <div id="forgotBox" style="display:none;"><h3>忘記密碼</h3><div class="form-group" style="margin-bottom:8px;"><input id="forgotAccount" type="text" placeholder="帳號" /></div><div class="form-group"><input id="forgotEmail" type="email" placeholder="註冊信箱" /></div><button id="forgotSendBtn">寄送密碼提示</button><button id="forgotBackBtn" style="background-color:#6c757d;">返回</button><div id="forgotMsg"></div></div>
-  <div id="profileBox" style="display:none;"><h3>會員資料</h3><div class="form-group"><label>帳號</label><span id="profileAccount"></span></div><div class="form-group"><label for="currentPassword">目前的密碼</label><input type="password" id="currentPassword" placeholder="請輸入您目前的密碼以進行驗證" required></div><div class="form-group"><label for="profilePassword">新密碼 (不修改請留空)</label><input type="password" id="profilePassword" placeholder="請輸入新密碼"><small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small></div><div class="form-group"><label for="profileEmail">註冊信箱 (暫不可修改)</label><input type="email" id="profileEmail" placeholder="請輸入您的信箱" disabled></div><div class="form-group"><label>剩餘下載額度</label><span id="profileQuota"></span></div><div class="form-group"><label>註冊日期</label><span id="profileRegisterDate"></span></div><div class="form-group"><label>最後修改日期</label><span id="profileLastModified"></span></div><div id="profileMsg"></div><div class="button-group"><button id="saveProfileBtn">儲存變更</button><button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button></div></div>
+  <div id="profileBox" style="display:none;"><h3>會員資料</h3><div class="form-group"><label>帳號</label><span id="profileAccount"></span></div><div class="form-group"><label for="currentPassword">目前的密碼</label><input type="password" id="currentPassword" placeholder="請輸入您目前的密碼以進行驗證" required></div><div class="form-group"><label for="profilePassword">新密碼 (不修改請留空)</label><input type="password" id="profilePassword" placeholder="請輸入新密碼"><small class="input-hint">密碼至少8位，含大小寫英文及一個特殊符號</small></div><div class="form-group"> <label for="profileEmail">註冊信箱</label>
+      <input type="email" id="profileEmail" placeholder="請輸入您的信箱"><div class="form-group"><label>剩餘下載額度</label><span id="profileQuota"></span></div><div class="form-group"><label>註冊日期</label><span id="profileRegisterDate"></span></div><div class="form-group"><label>最後修改日期</label><span id="profileLastModified"></span></div><div id="profileMsg"></div><div class="button-group"><button id="saveProfileBtn">儲存變更</button><button id="cancelProfileBtn" style="background-color:#6c757d;">返回主畫面</button></div></div>
   <div id="mainApp"><div style="text-align: right; width: 100%; max-width: 800px; margin: 0 auto 1rem auto;"><button id="userAdminBtn" style="width: auto; padding: 8px 16px; background-color: #17a2b8; display: none; margin-right: 1rem;">使用者管理</button><button id="adminBtn" style="width: auto; padding: 8px 16px; background-color: #ff9800; display: none; margin-right: 1rem;">管理註冊碼</button><button id="showProfileBtn" style="width: auto; padding: 8px 16px; background-color: #007bff; margin-right: 1rem;">會員資料</button><button id="logoutBtn" style="width: auto; padding: 8px 16px; background-color: #6c757d;">登出</button></div><div style="text-align: center; line-height: 1.8; border: 2px dashed red; padding: 10px; border-radius: 8px; margin-bottom: 1rem;"><p style="margin-bottom: 0.0em;">🚀 <strong>使用風險提醒</strong></p><p style="margin: 0;">信用卡條碼產生器有可能會發生</p><p style="margin: 0;">條碼掃得過但實際沒入帳</p><p style="margin: 0;">付款紀錄「飛到外太空」不見了的情況</p><p style="margin: 0;">請務必確認條碼內容正確無誤</p><p style="margin-top: 0.0em;">⚠️風險需由您自行承擔!請小心使用</p></div><div style="font-size:0.95em;color:#555;margin-bottom:16px;">註解1. LINE內建瀏覽器，會導致部分功能無法操作。<br>註解2. 前4碼「年+月」有國泰、富邦、聯邦<br>註解3. 前4碼「月+日」有玉山、台新、台銀</div><h2>條碼產生器</h2><form id="barcodeForm"><label>第三段條碼前4碼</label><select id="barcodeType"><option value="YYMM">年+月</option><option value="MMDD">月+日</option></select><select id="bankSelect"><option value="">請選擇銀行</option><option value="other">其他（請自行輸入）</option></select><label id="bankLabel" style="display:none;">請輸入銀行名稱</label><input type="text" id="bankInput" placeholder="請輸入銀行名稱" style="display:none;" /><label>第一段條碼 (9碼)</label><input type="text" id="firstBarcode" maxlength="9" pattern="[A-Za-z0-9]{9}" title="請輸入 9 位英文或數字" required class="uppercase-input" /><span id="bankName" style="color:blue;font-weight:bold;"></span><label>第二段條碼 (16碼) <span style="margin-left:8px;color: blue;">(銷帳編號)</span></label><input type="text" id="secondBarcode" maxlength="16" pattern="[A-Za-z0-9]{16}" title="請輸入 16 位英文或數字" required class="uppercase-input" placeholder="請謹慎確認" /><label>繳費期限 (YYYMMDD)</label><input type="text" id="paymentDue" maxlength="7" pattern="^[0-9]{7}$" title="請輸入正確格式（YYYMMDD）" required /><label>繳費金額</label><input type="text" id="paymentAmount" pattern="^[0-9]+$" title="請輸入數字金額" required /><label>金額遞增</label><select id="amountIncrementType"><option value="0">無 (金額固定)</option><option value="1">連續 +1 元</option><option value="5">連續 +5 元</option><option value="10">連續 +10 元</option><option value="custom">自訂</option></select><input type="number" id="customIncrementAmount" placeholder="請輸入自訂遞增金額" style="display:none;" /><label>條碼數量 (剩餘 <span id="quotaDisplay">0</span> 張)</label><select id="qrCount"></select><button type="submit" id="generateBtn">條碼產生器</button></form></div>
   <div id="previewPage"><div class="preview-actions"><div class="download-button-container"><button id="downloadAllBtn">全部下載條碼</button></div><button id="backToGeneratorBtn">返回產生器</button></div><div class="preview-container" id="previewContainer"></div></div>
   <div id="adminPanel"><h3>註冊碼管理</h3><table id="serialTable"><thead><tr><th>序號</th><th>總次數</th><th>已用次數</th><th>操作</th></tr></thead><tbody id="serialTableBody"></tbody></table><div class="admin-button-group"><button id="addRowBtn">新增一列</button><button id="saveSerialsBtn">儲存變更</button><button id="cancelAdminBtn" style="background-color: #6c757d;">返回主畫面</button></div><div id="adminMsg" style="color: red; margin-top: 1rem; text-align: center;"></div></div>
@@ -616,48 +617,76 @@
         document.getElementById('bankLabel').style.display = isOther ? 'block' : 'none';
     }
 
-    function showProfile() {
-        if (!currentUserProfile) { showCustomAlert("無法獲取會員資料，請重新登入。"); return; }
-        document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
-        document.getElementById('profileEmail').value = currentUserProfile.email || '';
-        document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
-        const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
-        const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
-        document.getElementById('profileRegisterDate').textContent = registerDate;
-        document.getElementById('profileLastModified').textContent = lastModified;
-        document.getElementById('profilePassword').value = '';
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('profileMsg').textContent = '';
-        showLogin();
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('profileBox').style.display = 'flex';
+// index.html 中的 showProfile (最終版)
+function showProfile() {
+    if (!currentUserProfile) {
+        showCustomAlert("無法獲取會員資料，請重新登入。");
+        return;
     }
+    document.getElementById('profileAccount').textContent = currentUserProfile.account || 'N/A';
+    document.getElementById('profileEmail').value = currentUserProfile.email || '';
+    document.getElementById('profileQuota').textContent = (typeof currentUserProfile.current_quota !== 'undefined') ? currentUserProfile.current_quota : 'N/A';
+    const registerDate = currentUserProfile.register_date ? new Date(currentUserProfile.register_date).toLocaleString('zh-TW') : 'N/A';
+    const lastModified = currentUserProfile.last_modified ? new Date(currentUserProfile.last_modified).toLocaleString('zh-TW') : '無修改紀錄';
+    document.getElementById('profileRegisterDate').textContent = registerDate;
+    document.getElementById('profileLastModified').textContent = lastModified;
+    
+    document.getElementById('profilePassword').value = '';
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('profileMsg').textContent = '';
 
-    function hideProfile() {
-        document.getElementById('profileBox').style.display = 'none';
-        showMainAppPage();
+    showLogin();
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('profileBox').style.display = 'flex';
+}
+
+// index.html 中的 saveProfile (最終版)
+function saveProfile() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('profilePassword').value;
+    const newEmail = document.getElementById('profileEmail').value.trim();
+    const profileMsg = document.getElementById('profileMsg');
+
+    if (!currentPassword) {
+        profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。';
+        return;
     }
+    if (newPassword && !validatePassword(newPassword)) {
+        profileMsg.textContent = '新密碼格式不符合要求。';
+        return;
+    }
+    
+    // 檢查是否有任何變更
+    if (!newPassword && newEmail === currentUserProfile.email) {
+        profileMsg.textContent = '資料未變更。';
+        setTimeout(hideProfile, 1500);
+        return;
+    }
+    
+    profileMsg.textContent = '儲存中...';
 
-    function saveProfile() {
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('profilePassword').value;
-        const profileMsg = document.getElementById('profileMsg');
-        if (!currentPassword) { profileMsg.textContent = '為了安全，請務必輸入您目前的密碼以儲存變更。'; return; }
-        if (newPassword && !validatePassword(newPassword)) { profileMsg.textContent = '新密碼格式不符合要求。'; return; }
-        if (!newPassword) { profileMsg.textContent = '資料未變更。'; setTimeout(hideProfile, 1500); return; }
-        profileMsg.textContent = '儲存中...';
-        callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null })
-            .then(res => {
-                if (res.success) {
-                    profileMsg.textContent = res.message;
-                    if (newPassword) {
-                        showCustomAlert("密碼已成功更新！為了安全，系統將為您登出，請使用您的新密碼重新登入。");
-                        setTimeout(logout, 2000); 
-                    }
+    callApi('auth', 'updateProfile', { currentPassword, newPassword: newPassword || null, newEmail: newEmail })
+        .then(res => {
+            if (res.success) {
+                profileMsg.textContent = res.message;
+                // 如果密碼或信箱被修改，最好是將使用者登出
+                if (res.passwordChanged || res.emailChanged) {
+                    let alertMessage = "";
+                    if (res.passwordChanged) alertMessage += "密碼已成功更新！\n";
+                    if (res.emailChanged) alertMessage += "信箱已更新，請前往信箱完成重新驗證。\n";
+                    alertMessage += "為了安全，系統將為您登出。";
+                    
+                    showCustomAlert(alertMessage);
+                    setTimeout(logout, 3000); 
+                } else {
+                    setTimeout(hideProfile, 1500);
                 }
-            })
-            .catch(err => { profileMsg.textContent = '更新失敗：' + err.message; });
-    }
+            }
+        })
+        .catch(err => {
+            profileMsg.textContent = '更新失敗：' + err.message;
+        });
+}
 
     function showAdminPanel() {
         showLogin();
