@@ -696,40 +696,52 @@
 
         // index.html 中的 loadUsersForAdmin (最終完整版)
 
+        // index.html 中的 loadUsersForAdmin (最終完整版)
+
     function loadUsersForAdmin() {
         // 步驟 1: 獲取表格主體 (tbody)，並顯示「載入中...」的提示
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
 
-        // 步驟 2: 準備請求所需的標頭 (Headers)
-        const headers = { 'Content-Type': 'application/json' };
+        // 步驟 2: 準備請求所需的標頭 (Headers)，主要是附上 JWT Token 以進行管理員身份驗證
+        const headers = {
+            'Content-Type': 'application/json'
+        };
         const token = localStorage.getItem('authToken');
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // ▼▼▼ 【核心修正】將請求路徑指向統一的 admin 端點，並帶上資源名稱 users ▼▼▼
-        fetch('/api/admin/users', {
+        // 步驟 3: 使用 fetch 函式，向後端 /api/admin/getUsers 發送一個 GET 請求
+        fetch('/api/admin/getUsers', {
             method: 'GET',
             headers: headers
         })
         .then(response => {
             // 步驟 4: 處理伺服器的回應
             return response.json().then(json => {
+                // 檢查 HTTP 狀態碼是否為成功
                 if (!response.ok) {
+                    // 如果不成功，就拋出一個帶有後端訊息的錯誤
                     throw new Error(json.message || `伺服器回傳 ${response.status}`);
                 }
+                // 如果成功，回傳解析後的 JSON 資料 (也就是使用者陣列)
                 return json;
             });
         })
         .then(users => {
             // 步驟 5: 成功獲取到使用者資料陣列，開始將資料渲染到表格中
-            tbody.innerHTML = '';
+            tbody.innerHTML = ''; // 清空「載入中...」的提示
             if (users && users.length > 0) {
                 users.forEach(user => {
                     const newRow = tbody.insertRow();
+                    // 在每一行 (tr) 上，使用 dataset 儲存該使用者的唯一 ID，方便後續更新操作
                     newRow.dataset.userId = user.id;
+
+                    // 格式化日期顯示，使其更符合台灣習慣
                     const registerDate = user.register_date ? new Date(user.register_date).toLocaleDateString('zh-TW') : 'N/A';
+
+                    // 使用 innerHTML 將整行儲存格的內容一次性寫入，效能較好
                     newRow.innerHTML = `
                         <td>${user.account}</td>
                         <td><input type="checkbox" ${user.permission ? 'checked' : ''}></td>
@@ -739,11 +751,13 @@
                     `;
                 });
             } else {
+                // 如果沒有任何使用者資料，顯示提示訊息
                 tbody.innerHTML = '<tr><td colspan="5">沒有使用者資料。</td></tr>';
             }
         })
         .catch(err => {
-            // 步驟 6: 捕捉並顯示錯誤
+            // 步驟 6: 如果在 fetch 或後續處理中發生任何錯誤，就在這裡捕捉
+            // 將錯誤訊息顯示在表格中，方便除錯
             tbody.innerHTML = `<tr style="color:red;"><td colspan="5">載入失敗: ${err.message}</td></tr>`;
         });
     }
@@ -761,30 +775,35 @@
         // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
             const userId = parseInt(row.dataset.userId, 10);
+            
+            // 從第一個儲存格 (<td>) 中，讀取帳號文字
             const accountValue = row.cells[0].innerText;
+        
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
+
+            // 步驟 4: 組合成一個物件，key 必須與後端 API 和 Supabase 欄位名稱完全一致
             return {
                 id: userId,
-                account: accountValue,
+                account: accountValue, // 包含 account，避免 'not-null' 錯誤
                 permission: permissionValue,
                 current_quota: currentQuotaValue,
                 reset_quota: resetQuotaValue
             };
         });
 
-        // 步驟 5: 準備請求標頭
+        // 步驟 5: 準備請求標頭，附上 JWT Token
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         };
 
-        // ▼▼▼ 【核心修正】將請求路徑指向統一的 admin 端點，並帶上資源名稱 users ▼▼▼
-        fetch('/api/admin/users', {
+        // 步驟 6: 使用 fetch 函式，向後端 /api/admin/updateUsers 發送一個 POST 請求
+        fetch('/api/admin/updateUsers', {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify(usersData)
+            body: JSON.stringify(usersData) // 將整個使用者資料陣列作為 body 發送
         })
         .then(response => {
             return response.json().then(json => {
@@ -793,9 +812,10 @@
             });
         })
         .then(res => {
-            // 步驟 7: 處理成功回應
+            // 步驟 7: 處理後端回傳的成功回應
             if (res.success) {
                 msgDiv.innerText = res.message;
+                // 成功後，短暫顯示訊息，然後重新載入列表以確認變更
                 setTimeout(() => { 
                     msgDiv.innerText = '';
                     loadUsersForAdmin(); 
@@ -803,7 +823,7 @@
             }
         })
         .catch(err => {
-            // 步驟 8: 處理錯誤回應
+            // 步驟 8: 處理後端回傳的錯誤回應
             msgDiv.innerText = '儲存失敗: ' + err.message;
         });
     }
