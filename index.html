@@ -625,24 +625,26 @@
 
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` };
 
-        fetch('/api/admin/updateSerials', {
+        fetch('/api/admin/serials', {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(serialsData)
         })
-        .then(response => {
-            if (!response.ok) return response.json().then(err => { throw new Error(err.message) });
-            return response.json();
-        })
-        .then(res => {
-            if (res.success) {
-                msgDiv.innerText = res.message;
-                setTimeout(() => { msgDiv.innerText = ''; loadSerialCodes(); }, 2000);
-            }
-        })
-        .catch(err => {
-            msgDiv.innerText = '儲存失敗: ' + err.message;
-        });
+            .then(response => {
+                return response.json().then(json => {
+                    if (!response.ok) throw new Error(json.message || `伺服器回傳 ${response.status}`);
+                    return json;
+                });
+            })
+            .then(res => {
+                if (res.success) {
+                    msgDiv.innerText = res.message;
+                    setTimeout(() => { msgDiv.innerText = ''; loadSerialCodes(); }, 2000);
+                }
+            })
+            .catch(err => {
+                msgDiv.innerText = '儲存失敗: ' + err.message;
+            });
     }
 
     function addSerialRow(serial = '', total = '', used = '') {
@@ -776,18 +778,13 @@
         // 步驟 3: 遍歷每一行，收集使用者修改後的資料
         const usersData = Array.from(tableRows).map(row => {
             const userId = parseInt(row.dataset.userId, 10);
-            
-            // 從第一個儲存格 (<td>) 中，讀取帳號文字
             const accountValue = row.cells[0].innerText;
-        
             const permissionValue = row.cells[1].querySelector('input[type="checkbox"]').checked;
             const currentQuotaValue = parseInt(row.cells[2].querySelector('input[type="number"]').value, 10);
             const resetQuotaValue = parseInt(row.cells[3].querySelector('input[type="number"]').value, 10);
-
-            // 步驟 4: 組合成一個物件，key 必須與後端 API 和 Supabase 欄位名稱完全一致
             return {
                 id: userId,
-                account: accountValue, // 包含 account，避免 'not-null' 錯誤
+                account: accountValue,
                 permission: permissionValue,
                 current_quota: currentQuotaValue,
                 reset_quota: resetQuotaValue
