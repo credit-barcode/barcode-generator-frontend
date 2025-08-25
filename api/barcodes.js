@@ -67,9 +67,11 @@ async function handleGenerateBarcodes(data) {
   }
   
   const initialAmount = parseInt(paymentAmount, 10);
+    /*
   if (initialAmount < 5) {
     throw new Error("繳費金額最低只能設定 5 元。");
   }
+  */
 
   let allData = [];
   let currentDate = rocStringToDate_(paymentDue);

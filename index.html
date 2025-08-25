@@ -223,7 +223,7 @@
     <input type="text" id="paymentAmount" pattern="^[0-9]+$" title="請輸入數字金額" required />
     <label>金額遞增</label>
     <select id="amountIncrementType">
-    <option value="0">無 (金額固定)</option>
+    <option value="0" id="incrementTypeFixed">無 (金額固定)</option> <!-- 新增 id -->
     <option value="1">連續 +1 元</option>
     <option value="5">連續 +5 元</option>
     <option value="10">連續 +10 元</option>
@@ -302,6 +302,39 @@
     }
 
     return fetch(`/api/${endpoint}`, { ...options, headers }).then(handleResponse);
+    }
+
+    // index.html 的 <script> 區塊中
+
+    /**
+     * 根據繳費金額，動態更新「金額遞增」下拉選單的選項
+     */
+    function updateIncrementOptions() {
+        const amountInput = document.getElementById('paymentAmount');
+        const fixedOption = document.getElementById('incrementTypeFixed');
+        const amountIncrementSelect = document.getElementById('amountIncrementType');
+
+        if (!amountInput || !fixedOption || !amountIncrementSelect) {
+            // 如果頁面元素不存在，直接返回
+            return;
+        }
+
+        // 將輸入框的值轉換為數字，如果為空或無效則視為 0
+        const amount = parseInt(amountInput.value, 10) || 0;
+
+        if (amount >= 1 && amount <= 4) {
+            // 如果金額在 1-4 元之間
+            fixedOption.style.display = 'none'; // 隱藏「無 (金額固定)」選項
+            
+            // 如果當前選中的正好是被隱藏的那個選項，就自動切換到下一個選項
+            if (amountIncrementSelect.value === '0') {
+                amountIncrementSelect.value = '1'; // 切換到「連續 +1 元」
+            }
+
+        } else {
+            // 如果金額為 0 或大於等於 5 元
+            fixedOption.style.display = ''; // 顯示「無 (金額固定)」選項 (恢復預設)
+        }
     }
 
     function handleResponse(response) {
@@ -983,6 +1016,7 @@
     showMainAppPage();
     });
     document.getElementById('showRegisterBtn').addEventListener('click', showRegister);
+    document.getElementById('paymentAmount').addEventListener('input', updateIncrementOptions);
     document.getElementById('registerBackToLoginBtn').addEventListener('click', showLogin);
     document.getElementById('showForgotBtn').addEventListener('click', showForgotBox);
     document.getElementById('forgotBackBtn').addEventListener('click', hideForgotBox);
